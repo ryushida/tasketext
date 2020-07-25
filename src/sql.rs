@@ -3,6 +3,8 @@ use rusqlite::types::ToSql;
 use rusqlite::NO_PARAMS;
 use rusqlite::{params, Connection, Result};
 use std::str;
+use std::io::{BufReader, BufRead, Error};
+use std::fs::File;
 
 /// Creates tables in SQLite Database
 pub fn init(conn: &Connection) -> Result<()> {
@@ -181,4 +183,15 @@ fn vector_to_daily_plan(vec: Result<Vec<Task>>) -> Result<String> {
     }
 
     Ok(output_string)
+}
+
+pub fn log_to_database(conn: &Connection, log_path: String)-> Result<(), Error> {
+
+    let input = File::open(log_path)?;
+    let buffered = BufReader::new(input);
+
+    for line in buffered.lines() {
+    }
+
+    Ok(())
 }

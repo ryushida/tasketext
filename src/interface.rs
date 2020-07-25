@@ -9,7 +9,7 @@ use term_table::{
 };
 use term_table::{Table, TableStyle};
 use std::fs::File;
-use std::io::Write;
+use std::io::{Write, Error};
 use std::fs::OpenOptions;
 
 use crate::datetime;
@@ -362,6 +362,8 @@ fn print_task_vector(task_vector: Vec<Task>) -> Result<()> {
 fn markdown_log_to_database(conn: &Connection, dir: String) -> Result<()> {
     let date = user_input_date("Date to save to database");
     let log_filename = date.replace("-", "") + ".md";
-    let file_path = dir + &log_filename;
+    let log_path = dir + &log_filename;
+    sql::log_to_database(conn, log_path).ok();
+
     Ok(())
 }
