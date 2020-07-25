@@ -20,6 +20,7 @@ pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
         "Add a Task",
         "View Tasks",
         "Generate Plan",
+        "Markdown Log to Database",
         "quit",
     ];
 
@@ -34,7 +35,8 @@ pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
         Ok(1) => call_add_task(&conn)?,
         Ok(2) => view_tasks_menu(&conn)?,
         Ok(3) => call_generate_daily_plan(&conn, main_dir)?,
-        Ok(4) => (),
+        Ok(4) => markdown_log_to_database(&conn, main_dir)?,
+        Ok(5) => (),
         Ok(_) => println!("Something went wrong"),
         Err(_err) => println!("Error"),
     }
@@ -353,6 +355,11 @@ fn print_task_vector(task_vector: Vec<Task>) -> Result<()> {
         ]));
     }
     println!("{}", table.render());
+
+    Ok(())
+}
+
+fn markdown_log_to_database(conn: &Connection, dir: String) -> Result<()> {
 
     Ok(())
 }
