@@ -360,6 +360,8 @@ fn print_task_vector(task_vector: Vec<Task>) -> Result<()> {
 }
 
 fn markdown_log_to_database(conn: &Connection, dir: String) -> Result<()> {
-
+    let date = user_input_date("Date to save to database");
+    let log_filename = date.replace("-", "") + ".md";
+    let file_path = dir + &log_filename;
     Ok(())
 }
