@@ -1,0 +1,17 @@
+[package]
+name = "tasketext"
+version = "0.1.0"
+authors = ["Ryuhei Shida"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+structopt = "0.3.13"
+rusqlite = { version = "0.23.1", features = ["bundled"] }
+term-table = "1.3.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_derive = "1.0.114"
+toml = "0.5.6"
+dialoguer = "0.6.2"
+chrono = "0.4"
