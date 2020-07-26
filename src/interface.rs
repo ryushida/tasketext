@@ -11,8 +11,10 @@ use term_table::{Table, TableStyle};
 use std::fs::File;
 use std::io::{Write, Error};
 use std::fs::OpenOptions;
+use comfy_table::presets::ASCII_MARKDOWN;
 
 use crate::datetime;
+use crate::Log;
 
 pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
     let selected = &[
@@ -396,7 +398,28 @@ fn generate_daily_report(conn: &Connection, dir: String) -> Result<()> {
     }
 
     let log_vector = sql::daily_report_log_vector(conn, selection, date_slice)?;
+    let table_string = log_vector_to_markdown_table_string(log_vector);
     
 
     Ok(())
+}
+
+fn log_vector_to_markdown_table_string(log_vector: Vec<Log>) -> String {
+    let mut table = comfy_table::Table::new();
+    table
+        .load_preset(ASCII_MARKDOWN)
+        .set_header(vec!["Start", "End", "Duration", "Task", "Review"]);
+
+    for log in log_vector {
+        let mut tmp_vec = Vec::new();
+        tmp_vec.push(&log.start);
+        tmp_vec.push(&log.end);
+        let duration = datetime::get_duration(&log.start, &log.end);
+        tmp_vec.push(&duration);
+        tmp_vec.push(&log.name);
+        tmp_vec.push(&log.review);
+        table.add_row(tmp_vec);
+    }
+
+    table.to_string()
 }

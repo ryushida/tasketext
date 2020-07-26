@@ -15,3 +15,11 @@ pub fn days_range(start: i32, end: i32) -> Vec<String> {
     }
     vec
 }
+
+pub fn get_duration(log_start: &str, log_end: &str) -> String {
+    let parse_from_str = NaiveTime::parse_from_str;
+
+    let duration_string =
+        parse_from_str(&log_end, "%H:%M").unwrap() - parse_from_str(&log_start, "%H:%M").unwrap();
+    Duration::num_minutes(&duration_string).to_string()
+}
