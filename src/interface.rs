@@ -21,6 +21,7 @@ pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
         "View Tasks",
         "Generate Plan",
         "Markdown Log to Database",
+        "Generate Daily Report",
         "quit",
     ];
 
@@ -36,7 +37,8 @@ pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
         Ok(2) => view_tasks_menu(&conn)?,
         Ok(3) => call_generate_daily_plan(&conn, main_dir)?,
         Ok(4) => markdown_log_to_database(&conn, main_dir)?,
-        Ok(5) => (),
+        Ok(5) => generate_daily_report(&conn, main_dir)?,
+        Ok(6) => (),
         Ok(_) => println!("Something went wrong"),
         Err(_err) => println!("Error"),
     }
@@ -364,6 +366,11 @@ fn markdown_log_to_database(conn: &Connection, dir: String) -> Result<()> {
     let log_filename = date.replace("-", "") + ".md";
     let log_path = dir + &log_filename;
     sql::log_to_database(conn, log_path, date).ok();
+
+    Ok(())
+}
+
+fn generate_daily_report(conn: &Connection, dir: String) -> Result<()> {
 
     Ok(())
 }
