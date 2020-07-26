@@ -1,9 +1,9 @@
 use rusqlite::{Connection, Result};
 use serde_derive::Deserialize;
+use std::fmt;
 use std::fs;
 use structopt::StructOpt;
 use toml;
-use std::fmt;
 
 mod datetime;
 mod interface;

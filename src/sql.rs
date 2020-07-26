@@ -2,10 +2,10 @@ use crate::Task;
 use rusqlite::types::ToSql;
 use rusqlite::NO_PARAMS;
 use rusqlite::{params, Connection, Result};
-use std::str;
-use std::io::{BufReader, BufRead, Error};
-use std::fs::File;
 use std::fmt;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Error};
+use std::str;
 
 use crate::Log;
 
@@ -42,9 +42,8 @@ pub fn add_task(conn: &Connection, t: Task) -> Result<()> {
         estimate, repeat, next)
         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7,?8)";
 
-    let param_slice = params![
-        t.status, t.name, t.notes, t.project, t.start, t.estimate, t.repeat, t.next
-    ];
+    let param_slice =
+        params![t.status, t.name, t.notes, t.project, t.start, t.estimate, t.repeat, t.next];
     execute_insert_query(conn, query, param_slice)?;
 
     Ok(())
@@ -174,7 +173,6 @@ pub fn generate_daily_plan(conn: &Connection, target_date: &str) -> Result<Strin
     let plan_string = vector_to_daily_plan(vec)?;
 
     Ok(plan_string)
-
 }
 
 fn vector_to_daily_plan(vec: Result<Vec<Task>>) -> Result<String> {
@@ -231,8 +229,8 @@ impl LogItem {
 }
 
 impl Default for LogItem {
-    fn default () -> LogItem {
-        LogItem{
+    fn default() -> LogItem {
+        LogItem {
             name: "".to_string(),
             notes: "".to_string(),
             project: "".to_string(),
@@ -247,12 +245,15 @@ impl Default for LogItem {
 
 impl fmt::Display for LogItem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{} {} {} {} {} {} {}", self.name, self.notes, self.project, self.estimate, self.start, self.end, self.review)
+        writeln!(
+            f,
+            "{} {} {} {} {} {} {}",
+            self.name, self.notes, self.project, self.estimate, self.start, self.end, self.review
+        )
     }
 }
 
 pub fn log_to_database(conn: &Connection, log_path: String, date: String) -> Result<(), Error> {
-
     let input = File::open(log_path)?;
     let buffered = BufReader::new(input);
 
@@ -280,13 +281,18 @@ pub fn log_to_database(conn: &Connection, log_path: String, date: String) -> Res
 }
 
 fn logitem_to_database(conn: &Connection, one_log: &mut LogItem) -> Result<()> {
-
     let query = "INSERT INTO log (name, notes, project, date,
         start, end, estimate, review) VALUES
         (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)";
     let param_slice = params![
-        one_log.name, one_log.notes, one_log.project, one_log.date, one_log.start,
-        one_log.end, one_log.estimate, one_log.review
+        one_log.name,
+        one_log.notes,
+        one_log.project,
+        one_log.date,
+        one_log.start,
+        one_log.end,
+        one_log.estimate,
+        one_log.review
     ];
     execute_insert_query(conn, query, param_slice)?;
 
@@ -294,7 +300,6 @@ fn logitem_to_database(conn: &Connection, one_log: &mut LogItem) -> Result<()> {
 }
 
 fn process_task_line(line: String, one_log: &mut LogItem) -> Result<()> {
-
     reset_time_fields(one_log).ok();
 
     one_log.set_name(get_text_between(&line, "]", "：")?);
@@ -309,7 +314,6 @@ fn process_task_line(line: String, one_log: &mut LogItem) -> Result<()> {
     one_log.set_estimate(estimate_int);
 
     Ok(())
-    
 }
 
 fn reset_time_fields(one_log: &mut LogItem) -> Result<()> {
@@ -349,7 +353,11 @@ fn get_text_after(s: &str, beginning: &str) -> Result<String> {
     Ok(v[1].trim().to_string())
 }
 
-pub fn daily_report_log_vector(conn: &Connection, selection: Result<usize, std::io::Error>, date_slice: &[String],) -> Result<Vec<Log>> {
+pub fn daily_report_log_vector(
+    conn: &Connection,
+    selection: Result<usize, std::io::Error>,
+    date_slice: &[String],
+) -> Result<Vec<Log>> {
     let query = format!(
         "SELECT id, name, notes, project, date,
                          start, end, review FROM log

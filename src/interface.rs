@@ -1,17 +1,17 @@
 use crate::sql;
 use crate::Task;
+use comfy_table::presets::ASCII_MARKDOWN;
 use dialoguer::Input;
 use dialoguer::{theme::ColorfulTheme, Select};
 use rusqlite::{Connection, Result};
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::{Error, Write};
 use term_table::{
     row::Row,
     table_cell::{Alignment, TableCell},
 };
 use term_table::{Table, TableStyle};
-use std::fs::File;
-use std::io::{Write, Error};
-use std::fs::OpenOptions;
-use comfy_table::presets::ASCII_MARKDOWN;
 
 use crate::datetime;
 use crate::Log;
@@ -116,7 +116,6 @@ fn user_input_int(displayed_text: &str) -> i32 {
 }
 
 fn add_task_today(dir: String) -> Result<()> {
-
     println!("Adding Task...");
     let name = user_input("Name");
     let notes = user_input_allow_empty("Notes");
@@ -317,7 +316,7 @@ fn call_generate_daily_plan(conn: &Connection, dir: String) -> Result<()> {
     };
 
     let target_date = datetime::yyyymmdd_today_plus_n(n);
-    let plan_string = sql::generate_daily_plan(conn, &target_date)?;    
+    let plan_string = sql::generate_daily_plan(conn, &target_date)?;
 
     let file_path = [dir, target_date.replace("-", ""), ".md".to_string()].join("");
     println!("{}", file_path);
@@ -373,7 +372,6 @@ fn markdown_log_to_database(conn: &Connection, dir: String) -> Result<()> {
 }
 
 fn generate_daily_report(conn: &Connection, dir: String) -> Result<()> {
-
     let date_vec = datetime::days_range(-7, 1);
     let date_slice: &[String] = &date_vec;
 
@@ -403,7 +401,7 @@ fn generate_daily_report(conn: &Connection, dir: String) -> Result<()> {
     let filename = datetime::yyyymmdd_today_plus_n(n).replace("-", "");
     let path = format!("{}{}{}{}", dir, "log\\", filename, "_log.md");
 
-    save_string_to_file(table_string, &path)?;    
+    save_string_to_file(table_string, &path)?;
 
     Ok(())
 }
