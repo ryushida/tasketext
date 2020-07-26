@@ -402,7 +402,8 @@ fn generate_daily_report(conn: &Connection, dir: String) -> Result<()> {
 
     let filename = datetime::yyyymmdd_today_plus_n(n).replace("-", "");
     let path = format!("{}{}{}{}", dir, "log\\", filename, "_log.md");
-    
+
+    save_string_to_file(table_string, &path)?;    
 
     Ok(())
 }
