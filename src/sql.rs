@@ -249,12 +249,13 @@ impl fmt::Display for LogItem {
     }
 }
 
-pub fn log_to_database(conn: &Connection, log_path: String) -> Result<(), Error> {
+pub fn log_to_database(conn: &Connection, log_path: String, date: String) -> Result<(), Error> {
 
     let input = File::open(log_path)?;
     let buffered = BufReader::new(input);
 
     let mut one_log = LogItem::default();
+    one_log.date = date;
 
     for line in buffered.lines() {
         let l = match line {
@@ -263,7 +264,7 @@ pub fn log_to_database(conn: &Connection, log_path: String) -> Result<(), Error>
         };
         if l.starts_with("- ") {
             if one_log.start != "" && one_log.end != "" {
-                print!("{}", one_log);
+                logitem_to_database(conn, &mut one_log);
                 reset_review_fields(&mut one_log);
             }
             process_task_line(l, &mut one_log);
@@ -271,6 +272,21 @@ pub fn log_to_database(conn: &Connection, log_path: String) -> Result<(), Error>
             process_indented_line(l, &mut one_log);
         }
     }
+    logitem_to_database(conn, &mut one_log);
+
+    Ok(())
+}
+
+fn logitem_to_database(conn: &Connection, one_log: &mut LogItem) -> Result<()> {
+
+    let query = "INSERT INTO log (name, notes, project, date,
+        start, end, estimate, review) VALUES
+        (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)";
+    let param_slice = params![
+        one_log.name, one_log.notes, one_log.project, one_log.date, one_log.start,
+        one_log.end, one_log.estimate, one_log.review
+    ];
+    execute_insert_query(conn, query, param_slice)?;
 
     Ok(())
 }

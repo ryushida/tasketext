@@ -363,7 +363,7 @@ fn markdown_log_to_database(conn: &Connection, dir: String) -> Result<()> {
     let date = user_input_date("Date to save to database");
     let log_filename = date.replace("-", "") + ".md";
     let log_path = dir + &log_filename;
-    sql::log_to_database(conn, log_path).ok();
+    sql::log_to_database(conn, log_path, date).ok();
 
     Ok(())
 }
