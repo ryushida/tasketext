@@ -21,6 +21,7 @@ pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
         "Add a Task to Today's Plan",
         "Add a Task",
         "View Tasks",
+        "Bulk Edit Mode",
         "Generate Plan",
         "Markdown Log to Database",
         "Generate Daily Report",
@@ -37,10 +38,11 @@ pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
         Ok(0) => add_task_today(main_dir)?,
         Ok(1) => call_add_task(&conn)?,
         Ok(2) => view_tasks_menu(&conn)?,
-        Ok(3) => call_generate_daily_plan(&conn, main_dir)?,
-        Ok(4) => markdown_log_to_database(&conn, main_dir)?,
-        Ok(5) => generate_daily_report(&conn, main_dir)?,
-        Ok(6) => (),
+        Ok(3) => bulk_edit_menu(&conn)?,
+        Ok(4) => call_generate_daily_plan(&conn, main_dir)?,
+        Ok(5) => markdown_log_to_database(&conn, main_dir)?,
+        Ok(6) => generate_daily_report(&conn, main_dir)?,
+        Ok(7) => (),
         Ok(_) => println!("Something went wrong"),
         Err(_err) => println!("Error"),
     }
@@ -292,6 +294,11 @@ fn user_input_modify_project(conn: &Connection, task_id: i32) -> Result<()> {
     sql::modify_project(conn, task_id, value)?;
     let task_vector = sql::task_vector_from_task_id(conn, task_id)?;
     print_task_vector(task_vector)?;
+    Ok(())
+}
+
+fn bulk_edit_menu(conn: &Connection) -> Result<()> {
+
     Ok(())
 }
 
