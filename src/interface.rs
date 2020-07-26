@@ -399,6 +399,9 @@ fn generate_daily_report(conn: &Connection, dir: String) -> Result<()> {
 
     let log_vector = sql::daily_report_log_vector(conn, selection, date_slice)?;
     let table_string = log_vector_to_markdown_table_string(log_vector);
+
+    let filename = datetime::yyyymmdd_today_plus_n(n).replace("-", "");
+    let path = format!("{}{}{}{}", dir, "log\\", filename, "_log.md");
     
 
     Ok(())
