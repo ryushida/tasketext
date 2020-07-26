@@ -214,6 +214,18 @@ impl LogItem {
     fn set_estimate(&mut self, estimate: i32) {
         self.estimate = estimate;
     }
+
+    fn set_start(&mut self, start: String) {
+        self.start = start;
+    }
+
+    fn set_end(&mut self, end: String) {
+        self.end = end;
+    }
+
+    fn set_review(&mut self, review: String) {
+        self.review = review;
+    }
 }
 
 impl Default for LogItem {
@@ -233,7 +245,7 @@ impl Default for LogItem {
 
 impl fmt::Display for LogItem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{} {} {} {}", self.name, self.notes, self.project, self.estimate)
+        writeln!(f, "{} {} {} {} {} {} {}", self.name, self.notes, self.project, self.estimate, self.start, self.end, self.review)
     }
 }
 
@@ -250,8 +262,13 @@ pub fn log_to_database(conn: &Connection, log_path: String) -> Result<(), Error>
             Err(err) => panic!("Error reading line"),
         };
         if l.starts_with("- ") {
+            if one_log.start != "" && one_log.end != "" {
+                print!("{}", one_log);
+                reset_review_fields(&mut one_log);
+            }
             process_task_line(l, &mut one_log);
-            println!("{}", one_log);
+        } else if l.starts_with("  -") {
+            process_indented_line(l, &mut one_log);
         }
     }
 
@@ -259,6 +276,8 @@ pub fn log_to_database(conn: &Connection, log_path: String) -> Result<(), Error>
 }
 
 fn process_task_line(line: String, one_log: &mut LogItem) -> Result<()> {
+
+    reset_time_fields(one_log);
 
     one_log.set_name(get_text_between(&line, "]", "：")?);
     one_log.set_notes(get_text_after(&line, "：")?);
@@ -273,6 +292,31 @@ fn process_task_line(line: String, one_log: &mut LogItem) -> Result<()> {
 
     Ok(())
     
+}
+
+fn reset_time_fields(one_log: &mut LogItem) -> Result<()> {
+    one_log.set_start("".to_string());
+    one_log.set_end("".to_string());
+    Ok(())
+}
+
+fn reset_review_fields(one_log: &mut LogItem) -> Result<()> {
+    one_log.set_review("".to_string());
+    Ok(())
+}
+
+fn process_indented_line(line: String, one_log: &mut LogItem) -> Result<()> {
+    if get_text_after(&line, "  - ")?.trim().len() <= 5 {
+        let time = get_text_after(&line, "  - ")?;
+        if one_log.start == "" {
+            one_log.set_start(time);
+        } else {
+            one_log.set_end(time);
+        }
+    } else {
+        one_log.set_review(get_text_after(&line, "  - ")?);
+    }
+    Ok(())
 }
 
 fn get_text_between(s: &str, left: &str, right: &str) -> Result<String> {
