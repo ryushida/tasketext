@@ -7,6 +7,8 @@ use std::io::{BufReader, BufRead, Error};
 use std::fs::File;
 use std::fmt;
 
+use crate::Log;
+
 /// Creates tables in SQLite Database
 pub fn init(conn: &Connection) -> Result<()> {
     conn.execute(
@@ -345,4 +347,41 @@ fn get_text_between(s: &str, left: &str, right: &str) -> Result<String> {
 fn get_text_after(s: &str, beginning: &str) -> Result<String> {
     let v: Vec<&str> = s.split(beginning).collect();
     Ok(v[1].trim().to_string())
+}
+
+pub fn daily_report_log_vector(conn: &Connection, selection: Result<usize, std::io::Error>, date_slice: &[String],) -> Result<Vec<Log>> {
+    let query = format!(
+        "SELECT id, name, notes, project, date,
+                         start, end, review FROM log
+                         WHERE date = '{}' ORDER BY start",
+        date_slice[selection.unwrap()]
+    );
+
+    let log_vector = query_to_vec_log(conn, &query)?;
+    Ok(log_vector)
+}
+
+fn query_to_vec_log(conn: &Connection, query: &str) -> Result<Vec<Log>> {
+    let mut stmt = conn.prepare(&query)?;
+
+    let log_iter = stmt.query_map(params![], |row| {
+        Ok(Log {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            notes: row.get(2)?,
+            project: row.get(3)?,
+            date: row.get(4)?,
+            start: row.get(5)?,
+            end: row.get(6)?,
+            review: row.get(7)?,
+        })
+    })?;
+
+    let mut vec = Vec::new();
+    for log in log_iter {
+        let l = log.unwrap();
+        vec.push(l);
+    }
+
+    Ok(vec)
 }

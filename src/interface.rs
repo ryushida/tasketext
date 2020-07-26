@@ -11,8 +11,10 @@ use term_table::{Table, TableStyle};
 use std::fs::File;
 use std::io::{Write, Error};
 use std::fs::OpenOptions;
+use comfy_table::presets::ASCII_MARKDOWN;
 
 use crate::datetime;
+use crate::Log;
 
 pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
     let selected = &[
@@ -21,6 +23,7 @@ pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
         "View Tasks",
         "Generate Plan",
         "Markdown Log to Database",
+        "Generate Daily Report",
         "quit",
     ];
 
@@ -36,7 +39,8 @@ pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
         Ok(2) => view_tasks_menu(&conn)?,
         Ok(3) => call_generate_daily_plan(&conn, main_dir)?,
         Ok(4) => markdown_log_to_database(&conn, main_dir)?,
-        Ok(5) => (),
+        Ok(5) => generate_daily_report(&conn, main_dir)?,
+        Ok(6) => (),
         Ok(_) => println!("Something went wrong"),
         Err(_err) => println!("Error"),
     }
@@ -366,4 +370,60 @@ fn markdown_log_to_database(conn: &Connection, dir: String) -> Result<()> {
     sql::log_to_database(conn, log_path, date).ok();
 
     Ok(())
+}
+
+fn generate_daily_report(conn: &Connection, dir: String) -> Result<()> {
+
+    let date_vec = datetime::days_range(-7, 1);
+    let date_slice: &[String] = &date_vec;
+
+    let selection = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Generate Plan for Date")
+        .items(date_slice)
+        .default(6)
+        .interact();
+
+    let mut n = -1;
+    match &selection {
+        Ok(0) => n = -7,
+        Ok(1) => n = -6,
+        Ok(2) => n = -5,
+        Ok(3) => n = -4,
+        Ok(4) => n = -3,
+        Ok(5) => n = -2,
+        Ok(6) => n = -1,
+        Ok(7) => n = 0,
+        Ok(_) => println!("Something went wrong"),
+        Err(_err) => println!("Error"),
+    }
+
+    let log_vector = sql::daily_report_log_vector(conn, selection, date_slice)?;
+    let table_string = log_vector_to_markdown_table_string(log_vector);
+
+    let filename = datetime::yyyymmdd_today_plus_n(n).replace("-", "");
+    let path = format!("{}{}{}{}", dir, "log\\", filename, "_log.md");
+
+    save_string_to_file(table_string, &path)?;    
+
+    Ok(())
+}
+
+fn log_vector_to_markdown_table_string(log_vector: Vec<Log>) -> String {
+    let mut table = comfy_table::Table::new();
+    table
+        .load_preset(ASCII_MARKDOWN)
+        .set_header(vec!["Start", "End", "Duration", "Task", "Review"]);
+
+    for log in log_vector {
+        let mut tmp_vec = Vec::new();
+        tmp_vec.push(&log.start);
+        tmp_vec.push(&log.end);
+        let duration = datetime::get_duration(&log.start, &log.end);
+        tmp_vec.push(&duration);
+        tmp_vec.push(&log.name);
+        tmp_vec.push(&log.review);
+        table.add_row(tmp_vec);
+    }
+
+    table.to_string()
 }
