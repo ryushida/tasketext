@@ -372,5 +372,28 @@ fn markdown_log_to_database(conn: &Connection, dir: String) -> Result<()> {
 
 fn generate_daily_report(conn: &Connection, dir: String) -> Result<()> {
 
+    let date_vec = datetime::days_range(-7, 1);
+    let date_slice: &[String] = &date_vec;
+
+    let selection = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Generate Plan for Date")
+        .items(date_slice)
+        .default(6)
+        .interact();
+
+    let mut n = -1;
+    match &selection {
+        Ok(0) => n = -7,
+        Ok(1) => n = -6,
+        Ok(2) => n = -5,
+        Ok(3) => n = -4,
+        Ok(4) => n = -3,
+        Ok(5) => n = -2,
+        Ok(6) => n = -1,
+        Ok(7) => n = 0,
+        Ok(_) => println!("Something went wrong"),
+        Err(_err) => println!("Error"),
+    }
+
     Ok(())
 }
