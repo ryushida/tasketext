@@ -395,5 +395,8 @@ fn generate_daily_report(conn: &Connection, dir: String) -> Result<()> {
         Err(_err) => println!("Error"),
     }
 
+    let log_vector = sql::daily_report_log_vector(conn, selection, date_slice)?;
+    
+
     Ok(())
 }
