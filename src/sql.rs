@@ -5,6 +5,7 @@ use rusqlite::{params, Connection, Result};
 use std::str;
 use std::io::{BufReader, BufRead, Error};
 use std::fs::File;
+use std::fmt;
 
 /// Creates tables in SQLite Database
 pub fn init(conn: &Connection) -> Result<()> {
@@ -185,13 +186,103 @@ fn vector_to_daily_plan(vec: Result<Vec<Task>>) -> Result<String> {
     Ok(output_string)
 }
 
-pub fn log_to_database(conn: &Connection, log_path: String)-> Result<(), Error> {
+#[derive(Debug)]
+pub struct LogItem {
+    pub name: String,
+    pub notes: String,
+    pub project: String,
+    pub date: String,
+    pub start: String,
+    pub end: String,
+    pub estimate: i32,
+    pub review: String,
+}
+
+impl LogItem {
+    fn set_name(&mut self, name: String) {
+        self.name = name;
+    }
+
+    fn set_notes(&mut self, notes: String) {
+        self.notes = notes;
+    }
+
+    fn set_project(&mut self, project: String) {
+        self.project = project;
+    }
+
+    fn set_estimate(&mut self, estimate: i32) {
+        self.estimate = estimate;
+    }
+}
+
+impl Default for LogItem {
+    fn default () -> LogItem {
+        LogItem{
+            name: "".to_string(),
+            notes: "".to_string(),
+            project: "".to_string(),
+            date: "".to_string(),
+            start: "".to_string(),
+            end: "".to_string(),
+            estimate: 0,
+            review: "".to_string(),
+        }
+    }
+}
+
+impl fmt::Display for LogItem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{} {} {} {}", self.name, self.notes, self.project, self.estimate)
+    }
+}
+
+pub fn log_to_database(conn: &Connection, log_path: String) -> Result<(), Error> {
 
     let input = File::open(log_path)?;
     let buffered = BufReader::new(input);
 
+    let mut one_log = LogItem::default();
+
     for line in buffered.lines() {
+        let l = match line {
+            Ok(line) => line,
+            Err(err) => panic!("Error reading line"),
+        };
+        if l.starts_with("- ") {
+            process_task_line(l, &mut one_log);
+            println!("{}", one_log);
+        }
     }
 
     Ok(())
+}
+
+fn process_task_line(line: String, one_log: &mut LogItem) -> Result<()> {
+
+    one_log.set_name(get_text_between(&line, "]", "：")?);
+    one_log.set_notes(get_text_after(&line, "：")?);
+    one_log.set_project(get_text_between(&line, "[", "]")?);
+
+    let estimate_int = match get_text_between(&line, "(", ")").unwrap().parse::<i32>() {
+        Ok(estimate) => estimate,
+        Err(_) => panic!("Failed to read estimate for task {}", one_log.name),
+    };
+
+    one_log.set_estimate(estimate_int);
+
+    Ok(())
+    
+}
+
+fn get_text_between(s: &str, left: &str, right: &str) -> Result<String> {
+    let start_bytes = s.find(left).unwrap_or(0) + 1;
+    let end_bytes = s.find(right).unwrap_or(s.len());
+    let result = &s[start_bytes..end_bytes];
+    Ok(result.trim().to_string())
+}
+
+fn get_text_after(s: &str, beginning: &str) -> Result<String> {
+    let v: Vec<&str> = s.split(beginning).collect();
+    Ok(v[1].trim().to_string())
 }
