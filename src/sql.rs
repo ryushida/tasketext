@@ -264,15 +264,15 @@ pub fn log_to_database(conn: &Connection, log_path: String, date: String) -> Res
         };
         if l.starts_with("- ") {
             if one_log.start != "" && one_log.end != "" {
-                logitem_to_database(conn, &mut one_log);
-                reset_review_fields(&mut one_log);
+                logitem_to_database(conn, &mut one_log).ok();
+                reset_review_fields(&mut one_log).ok();
             }
-            process_task_line(l, &mut one_log);
+            process_task_line(l, &mut one_log).ok();
         } else if l.starts_with("  -") {
-            process_indented_line(l, &mut one_log);
+            process_indented_line(l, &mut one_log).ok();
         }
     }
-    logitem_to_database(conn, &mut one_log);
+    logitem_to_database(conn, &mut one_log).ok();
 
     Ok(())
 }
@@ -293,7 +293,7 @@ fn logitem_to_database(conn: &Connection, one_log: &mut LogItem) -> Result<()> {
 
 fn process_task_line(line: String, one_log: &mut LogItem) -> Result<()> {
 
-    reset_time_fields(one_log);
+    reset_time_fields(one_log).ok();
 
     one_log.set_name(get_text_between(&line, "]", "：")?);
     one_log.set_notes(get_text_after(&line, "：")?);
