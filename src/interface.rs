@@ -228,12 +228,12 @@ fn filter_by_print(conn: &Connection, by: Result<&str>) -> Result<()> {
     };
 
     print_task_vector(&task_vector)?;
-    user_input_action_id(conn, &task_vector)?;
+    select_task_action(conn, &task_vector)?;
 
     Ok(())
 }
 
-fn user_input_action_id(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> {
+fn select_task_action(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> {
     let selected = &["Perform Action on a Task", "Bulk Edit", "quit"];
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select")
