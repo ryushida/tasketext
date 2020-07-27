@@ -249,22 +249,6 @@ fn select_task_action(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> 
     Ok(())
 }
 
-fn user_input_modify_date(conn: &Connection, task_id: i32) -> Result<()> {
-    let value = user_input_date("Date");
-    sql::modify_date(conn, &task_id, &value)?;
-    let task_vector = sql::task_vector_from_task_id(conn, task_id)?;
-    print_task_vector(&task_vector)?;
-    Ok(())
-}
-
-fn user_input_modify_project(conn: &Connection, task_id: i32) -> Result<()> {
-    let value = user_input("Project");
-    sql::modify_project(conn, &task_id, &value)?;
-    let task_vector = sql::task_vector_from_task_id(conn, task_id)?;
-    print_task_vector(&task_vector)?;
-    Ok(())
-}
-
 fn bulk_edit_menu(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> {
     let mut all_ids: Vec<i32> = Vec::new();
     for entry in task_vector.iter() {

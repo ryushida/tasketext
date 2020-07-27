@@ -49,16 +49,6 @@ pub fn add_task(conn: &Connection, t: Task) -> Result<()> {
     Ok(())
 }
 
-pub fn task_vector_from_task_id(conn: &Connection, task_id: i32) -> Result<Vec<Task>> {
-    let query = format!(
-        "SELECT id, name, project, start, estimate, repeat, next,
-                 notes, status FROM tasks WHERE id = '{}'",
-        task_id
-    );
-    let task_vector = query_to_vec_task(conn, &query).unwrap();
-    Ok(task_vector)
-}
-
 pub fn modify_date(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
     let query = format!(
         "UPDATE tasks SET next = '{}' WHERE id = '{}'",
