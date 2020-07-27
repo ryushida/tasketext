@@ -11,7 +11,7 @@ mod sql;
 
 extern crate chrono;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Task {
     pub id: i32,
     pub status: String,

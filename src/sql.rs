@@ -188,6 +188,28 @@ pub fn filter_by_repeat(conn: &Connection, date: String) -> Result<Vec<Task>> {
     Ok(task_vector)
 }
 
+pub fn filter_by_id(conn: &Connection, id_vec: Vec<i32>) -> Result<Vec<Task>> {
+
+    let mut ids_string: String = "(".to_string();
+
+    for id in id_vec {
+        ids_string = ids_string + &id.to_string() + ", ";
+    }
+
+    let target_length = ids_string.len() - 2;
+    ids_string.truncate(target_length);
+    ids_string = ids_string + ")";
+
+    let query = format!(
+        "SELECT id, name, project, start, estimate,
+    repeat, next, notes, status FROM tasks
+    WHERE id IN {} ORDER BY start",
+        ids_string
+    );
+    let task_vector = query_to_vec_task(conn, &query)?;
+    Ok(task_vector.to_vec())
+}
+
 pub fn generate_daily_plan(conn: &Connection, target_date: &str) -> Result<String> {
     let vec = filter_by_date(conn, target_date);
     let plan_string = vector_to_daily_plan(vec)?;

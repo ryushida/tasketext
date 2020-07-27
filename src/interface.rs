@@ -328,13 +328,17 @@ fn bulk_edit_menu(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> {
             selections_tmp.push(id_vector[selection]);
         }
 
-        multiple_task_actions_menu(conn, selections_tmp)?;
+        multiple_task_actions_menu(conn, &selections_tmp)?;
+
+        let modified_tasks = sql::filter_by_id(conn, selections_tmp)?;
+
+        print_task_vector(&modified_tasks)?;
     }
 
     Ok(())
 }
 
-fn multiple_task_actions_menu(conn: &Connection, id_vector: Vec<i32>) -> Result<()> {
+fn multiple_task_actions_menu(conn: &Connection, id_vector: &Vec<i32>) -> Result<()> {
     let selected = &[
         "Modify Date",
         "Modify Project",
