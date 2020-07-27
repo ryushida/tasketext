@@ -234,7 +234,7 @@ fn filter_by_print(conn: &Connection, by: Result<&str>) -> Result<()> {
 }
 
 fn select_task_action(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> {
-    let selected = &["Perform Action on a Task", "Bulk Edit", "quit"];
+    let selected = &["Perform action on tasks", "quit"];
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select")
         .items(&selected[..])
@@ -243,39 +243,7 @@ fn select_task_action(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> 
         .unwrap();
 
     if selection == 0 {
-        let task_id = user_input_int("Task ID");
-        task_actions_menu(conn, task_id)?;
-    } else if selection == 1 {
         bulk_edit_menu(conn, &task_vector)?;
-    }
-
-    Ok(())
-}
-
-fn task_actions_menu(conn: &Connection, task_id: i32) -> Result<()> {
-    let task_vector = sql::task_vector_from_task_id(conn, task_id)?;
-    print_task_vector(&task_vector)?;
-
-    let selected = &[
-        "Modify Date",
-        "Modify Project",
-        "Modify Notes",
-        "Modify Estimates",
-        "Delete Task",
-        "quit",
-    ];
-
-    let selection = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Action")
-        .items(&selected[..])
-        .interact();
-
-    match selection {
-        Ok(0) => user_input_modify_date(conn, task_id)?,
-        Ok(1) => user_input_modify_project(conn, task_id)?,
-        Ok(4) => sql::delete_task_by_id(conn, &task_id)?,
-        Ok(_) => println!("Something went wrong"),
-        Err(_err) => println!("Error"),
     }
 
     Ok(())
