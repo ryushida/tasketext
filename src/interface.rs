@@ -371,10 +371,10 @@ fn user_input_bulk_edit_date(conn: &Connection, id_vec: &Vec<i32>) -> Result<()>
 }
 
 fn user_input_bulk_edit_project(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
-    let date = user_input("New Project");
+    let project = user_input("New Project");
 
     for id in id_vec.iter() {
-        sql::modify_project(conn, id, &date)?;
+        sql::modify_project(conn, id, &project)?;
     }
 
     Ok(())
