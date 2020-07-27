@@ -306,8 +306,6 @@ fn bulk_edit_menu(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> {
         v.push(s);
     }
 
-    let tmp = &v[..];
-
     let mut id_vector: Vec<i32> = Vec::new();
 
     for s in &v {
@@ -316,7 +314,7 @@ fn bulk_edit_menu(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> {
 
     let selections = MultiSelect::new()
         .with_prompt("Select tasks with Space and Press Enter")
-        .items(tmp)
+        .items(&v[..])
         .interact()
         .unwrap();
 
