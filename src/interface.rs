@@ -2,7 +2,7 @@ use crate::sql;
 use crate::Task;
 use comfy_table::presets::ASCII_MARKDOWN;
 use dialoguer::Input;
-use dialoguer::{theme::ColorfulTheme, Select, MultiSelect};
+use dialoguer::{theme::ColorfulTheme, Select};
 use rusqlite::{Connection, Result};
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -298,40 +298,25 @@ fn user_input_modify_project(conn: &Connection, task_id: i32) -> Result<()> {
 }
 
 fn bulk_edit_menu(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> {
-
-    let mut v: Vec<String> = Vec::new();
+    let mut all_ids: Vec<i32> = Vec::new();
     for entry in task_vector.iter() {
-        println!("{} {}", entry.id, entry.name);
-        let s = format!("{} {} {}", entry.id, entry.name, entry.next);
-        v.push(s);
+        all_ids.push(entry.id);
     }
 
-    let mut id_vector: Vec<i32> = Vec::new();
+    let selections = user_input("Enter 'all' or space seperated ID numbers");
 
-    for s in &v {
-        id_vector.push(s.split_whitespace().nth(0).unwrap().parse::<i32>().unwrap());
-    }
-
-    let selections = MultiSelect::new()
-        .with_prompt("Select tasks with Space and Press Enter")
-        .items(&v[..])
-        .interact()
-        .unwrap();
-
-    if selections.is_empty() {
-        println!("You did not select anything :(");
+    let mut selected_ids = Vec::new();
+    if selections == "all" {
+        selected_ids = all_ids;
     } else {
-        let mut selections_tmp = Vec::new();
-        for selection in selections {
-            selections_tmp.push(id_vector[selection]);
-        }
-
-        multiple_task_actions_menu(conn, &selections_tmp)?;
-
-        let modified_tasks = sql::filter_by_id(conn, selections_tmp)?;
-
-        print_task_vector(&modified_tasks)?;
+        let mapped = selections.split_whitespace().map(|s| s.parse::<i32>().unwrap());
+        selected_ids = mapped.collect();
     }
+
+    multiple_task_actions_menu(conn, &selected_ids)?;
+
+    let modified_tasks = sql::filter_by_id(conn, selected_ids)?;
+    print_task_vector(&modified_tasks)?;
 
     Ok(())
 }
