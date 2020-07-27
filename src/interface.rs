@@ -273,7 +273,7 @@ fn task_actions_menu(conn: &Connection, task_id: i32) -> Result<()> {
     match selection {
         Ok(0) => user_input_modify_date(conn, task_id)?,
         Ok(1) => user_input_modify_project(conn, task_id)?,
-        Ok(4) => sql::delete_task_by_id(conn, task_id)?,
+        Ok(4) => sql::delete_task_by_id(conn, &task_id)?,
         Ok(_) => println!("Something went wrong"),
         Err(_err) => println!("Error"),
     }
@@ -354,6 +354,7 @@ fn multiple_task_actions_menu(conn: &Connection, id_vector: Vec<i32>) -> Result<
         Ok(1) => user_input_bulk_edit_project(conn, &id_vector)?,
         Ok(2) => user_input_bulk_edit_notes(conn, &id_vector)?,
         Ok(3) => user_input_bulk_edit_estimates(conn, &id_vector)?,
+        Ok(4) => bulk_delete(conn, &id_vector)?,
         Ok(_) => println!("Something went wrong"),
         Err(_err) => println!("Error"),
     }
@@ -398,6 +399,13 @@ fn user_input_bulk_edit_estimates(conn: &Connection, id_vec: &Vec<i32>) -> Resul
         sql::modify_estimates(conn, id, &notes)?;
     }
 
+    Ok(())
+}
+
+fn bulk_delete(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
+    for id in id_vec.iter() {
+        sql::delete_task_by_id(conn, id)?;
+    }
     Ok(())
 }
 
