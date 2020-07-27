@@ -353,6 +353,7 @@ fn multiple_task_actions_menu(conn: &Connection, id_vector: Vec<i32>) -> Result<
         Ok(0) => user_input_bulk_edit_date(conn, &id_vector)?,
         Ok(1) => user_input_bulk_edit_project(conn, &id_vector)?,
         Ok(2) => user_input_bulk_edit_notes(conn, &id_vector)?,
+        Ok(3) => user_input_bulk_edit_estimates(conn, &id_vector)?,
         Ok(_) => println!("Something went wrong"),
         Err(_err) => println!("Error"),
     }
@@ -385,6 +386,16 @@ fn user_input_bulk_edit_notes(conn: &Connection, id_vec: &Vec<i32>) -> Result<()
 
     for id in id_vec.iter() {
         sql::modify_notes(conn, id, &notes)?;
+    }
+
+    Ok(())
+}
+
+fn user_input_bulk_edit_estimates(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
+    let notes = user_input("Estimates");
+
+    for id in id_vec.iter() {
+        sql::modify_estimates(conn, id, &notes)?;
     }
 
     Ok(())
