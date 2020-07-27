@@ -384,7 +384,7 @@ fn user_input_bulk_edit_notes(conn: &Connection, id_vec: &Vec<i32>) -> Result<()
     let notes = user_input("Notes");
 
     for id in id_vec.iter() {
-        sql::modify_project(conn, id, &notes)?;
+        sql::modify_notes(conn, id, &notes)?;
     }
 
     Ok(())

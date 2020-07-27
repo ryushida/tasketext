@@ -79,6 +79,16 @@ pub fn modify_project(conn: &Connection, task_id: &i32, value: &str) -> Result<(
     Ok(())
 }
 
+pub fn modify_notes(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
+    let query = format!(
+        "UPDATE tasks SET notes = '{}' WHERE id = '{}'",
+        value, task_id
+    );
+    conn.execute(&query, NO_PARAMS)?;
+
+    Ok(())
+}
+
 pub fn delete_task_by_id(conn: &Connection, id: i32) -> Result<()> {
     let query = format!("DELETE FROM tasks WHERE id={}", id);
     conn.execute(&query, NO_PARAMS)?;
