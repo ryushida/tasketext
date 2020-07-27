@@ -2,7 +2,7 @@ use crate::sql;
 use crate::Task;
 use comfy_table::presets::ASCII_MARKDOWN;
 use dialoguer::Input;
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{theme::ColorfulTheme, Select, MultiSelect};
 use rusqlite::{Connection, Result};
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -12,6 +12,7 @@ use term_table::{
     table_cell::{Alignment, TableCell},
 };
 use term_table::{Table, TableStyle};
+use std::convert::TryInto;
 
 use crate::datetime;
 use crate::Log;
@@ -21,7 +22,6 @@ pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
         "Add a Task to Today's Plan",
         "Add a Task",
         "View Tasks",
-        "Bulk Edit Mode",
         "Generate Plan",
         "Markdown Log to Database",
         "Generate Daily Report",
@@ -38,11 +38,10 @@ pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
         Ok(0) => add_task_today(main_dir)?,
         Ok(1) => call_add_task(&conn)?,
         Ok(2) => view_tasks_menu(&conn)?,
-        Ok(3) => bulk_edit_menu(&conn)?,
-        Ok(4) => call_generate_daily_plan(&conn, main_dir)?,
-        Ok(5) => markdown_log_to_database(&conn, main_dir)?,
-        Ok(6) => generate_daily_report(&conn, main_dir)?,
-        Ok(7) => (),
+        Ok(3) => call_generate_daily_plan(&conn, main_dir)?,
+        Ok(4) => markdown_log_to_database(&conn, main_dir)?,
+        Ok(5) => generate_daily_report(&conn, main_dir)?,
+        Ok(6) => (),
         Ok(_) => println!("Something went wrong"),
         Err(_err) => println!("Error"),
     }
@@ -214,8 +213,6 @@ fn view_tasks_menu(conn: &Connection) -> Result<()> {
         _ => println!("Something went wrong"),
     }
 
-    user_input_action_id(&conn)?;
-
     Ok(())
 }
 
@@ -230,16 +227,17 @@ fn filter_by_print(conn: &Connection, by: Result<&str>) -> Result<()> {
         Err(_err) => panic!(),
     };
 
-    print_task_vector(task_vector)?;
+    print_task_vector(&task_vector)?;
+    user_input_action_id(conn, &task_vector)?;
 
     Ok(())
 }
 
-fn user_input_action_id(conn: &Connection) -> Result<()> {
-    let multiselected = &["Perform Action on a Task", "quit"];
+fn user_input_action_id(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> {
+    let selected = &["Perform Action on a Task", "Bulk Edit", "quit"];
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select")
-        .items(&multiselected[..])
+        .items(&selected[..])
         .default(0)
         .interact()
         .unwrap();
@@ -247,6 +245,8 @@ fn user_input_action_id(conn: &Connection) -> Result<()> {
     if selection == 0 {
         let task_id = user_input_int("Task ID");
         task_actions_menu(conn, task_id)?;
+    } else if selection == 1 {
+        bulk_edit_menu(conn, &task_vector)?;
     }
 
     Ok(())
@@ -254,7 +254,7 @@ fn user_input_action_id(conn: &Connection) -> Result<()> {
 
 fn task_actions_menu(conn: &Connection, task_id: i32) -> Result<()> {
     let task_vector = sql::task_vector_from_task_id(conn, task_id)?;
-    print_task_vector(task_vector)?;
+    print_task_vector(&task_vector)?;
 
     let selected = &[
         "Modify Date",
@@ -283,9 +283,9 @@ fn task_actions_menu(conn: &Connection, task_id: i32) -> Result<()> {
 
 fn user_input_modify_date(conn: &Connection, task_id: i32) -> Result<()> {
     let value = user_input_date("Date");
-    sql::modify_date(conn, task_id, value)?;
+    sql::modify_date(conn, &task_id, &value)?;
     let task_vector = sql::task_vector_from_task_id(conn, task_id)?;
-    print_task_vector(task_vector)?;
+    print_task_vector(&task_vector)?;
     Ok(())
 }
 
@@ -293,11 +293,77 @@ fn user_input_modify_project(conn: &Connection, task_id: i32) -> Result<()> {
     let value = user_input("Project");
     sql::modify_project(conn, task_id, value)?;
     let task_vector = sql::task_vector_from_task_id(conn, task_id)?;
-    print_task_vector(task_vector)?;
+    print_task_vector(&task_vector)?;
     Ok(())
 }
 
-fn bulk_edit_menu(conn: &Connection) -> Result<()> {
+fn bulk_edit_menu(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> {
+
+    let mut v: Vec<String> = Vec::new();
+    for entry in task_vector.iter() {
+        println!("{} {}", entry.id, entry.name);
+        let s = format!("{} {} {}", entry.id, entry.name, entry.next);
+        v.push(s);
+    }
+
+    let tmp = &v[..];
+
+    let mut id_vector: Vec<i32> = Vec::new();
+
+    for s in &v {
+        id_vector.push(s.split_whitespace().nth(0).unwrap().parse::<i32>().unwrap());
+    }
+
+    let selections = MultiSelect::with_theme(&ColorfulTheme::default())
+        .with_prompt("Select tasks with Space and Press Enter")
+        .items(tmp)
+        .interact()
+        .unwrap();
+
+    if selections.is_empty() {
+        println!("You did not select anything :(");
+    } else {
+        let mut selections_tmp = Vec::new();
+        for selection in selections {
+            selections_tmp.push(id_vector[selection]);
+        }
+
+        multiple_task_actions_menu(conn, selections_tmp)?;
+    }
+
+    Ok(())
+}
+
+fn multiple_task_actions_menu(conn: &Connection, id_vector: Vec<i32>) -> Result<()> {
+    let selected = &[
+        "Modify Date",
+        "Modify Project",
+        "Modify Notes",
+        "Modify Estimates",
+        "Delete Task",
+        "quit",
+    ];
+
+    let selection = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Action")
+        .items(&selected[..])
+        .interact();
+
+    match selection {
+        Ok(0) => user_input_bulk_edit_date(conn, &id_vector)?,
+        Ok(_) => println!("Something went wrong"),
+        Err(_err) => println!("Error"),
+    }
+
+    Ok(())
+}
+
+fn user_input_bulk_edit_date(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
+    let date = user_input_date("New Date");
+
+    for id in id_vec.iter() {
+        sql::modify_date(conn, id, &date)?;
+    }
 
     Ok(())
 }
@@ -346,7 +412,7 @@ fn save_string_to_file(s: String, path: &str) -> Result<()> {
 }
 
 /// Prints tasks given a vector with Task structures
-fn print_task_vector(task_vector: Vec<Task>) -> Result<()> {
+fn print_task_vector(task_vector: &Vec<Task>) -> Result<()> {
     let mut table = Table::new();
     table.style = TableStyle::extended();
     table.add_row(Row::new(vec![
@@ -358,10 +424,10 @@ fn print_task_vector(task_vector: Vec<Task>) -> Result<()> {
     for task in task_vector {
         let t = task;
         table.add_row(Row::new(vec![
-            TableCell::new_with_alignment(t.id, 1, Alignment::Left),
-            TableCell::new_with_alignment(t.name, 1, Alignment::Left),
-            TableCell::new_with_alignment(t.project, 2, Alignment::Center),
-            TableCell::new_with_alignment(t.next, 2, Alignment::Center),
+            TableCell::new_with_alignment(&t.id, 1, Alignment::Left),
+            TableCell::new_with_alignment(&t.name, 1, Alignment::Left),
+            TableCell::new_with_alignment(&t.project, 2, Alignment::Center),
+            TableCell::new_with_alignment(&t.next, 2, Alignment::Center),
         ]));
     }
     println!("{}", table.render());

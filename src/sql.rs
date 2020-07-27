@@ -59,7 +59,7 @@ pub fn task_vector_from_task_id(conn: &Connection, task_id: i32) -> Result<Vec<T
     Ok(task_vector)
 }
 
-pub fn modify_date(conn: &Connection, task_id: i32, value: String) -> Result<()> {
+pub fn modify_date(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
     let query = format!(
         "UPDATE tasks SET next = '{}' WHERE id = '{}'",
         value, task_id
