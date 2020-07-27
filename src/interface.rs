@@ -314,7 +314,7 @@ fn bulk_edit_menu(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> {
         id_vector.push(s.split_whitespace().nth(0).unwrap().parse::<i32>().unwrap());
     }
 
-    let selections = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selections = MultiSelect::new()
         .with_prompt("Select tasks with Space and Press Enter")
         .items(tmp)
         .interact()
