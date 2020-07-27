@@ -12,6 +12,7 @@ use term_table::{
     table_cell::{Alignment, TableCell},
 };
 use term_table::{Table, TableStyle};
+use std::convert::TryInto;
 
 use crate::datetime;
 use crate::Log;
@@ -212,8 +213,6 @@ fn view_tasks_menu(conn: &Connection) -> Result<()> {
         _ => println!("Something went wrong"),
     }
 
-    user_input_action_id(&conn)?;
-
     Ok(())
 }
 
@@ -228,32 +227,53 @@ fn filter_by_print(conn: &Connection, by: Result<&str>) -> Result<()> {
         Err(_err) => panic!(),
     };
 
-    print_task_vector(task_vector)?;
+    print_task_vector(&task_vector)?;
+    select_task_action(conn, &task_vector)?;
 
     Ok(())
 }
 
-fn user_input_action_id(conn: &Connection) -> Result<()> {
-    let multiselected = &["Perform Action on a Task", "quit"];
+fn select_task_action(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> {
+    let selected = &["Perform action on tasks", "quit"];
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select")
-        .items(&multiselected[..])
+        .items(&selected[..])
         .default(0)
         .interact()
         .unwrap();
 
     if selection == 0 {
-        let task_id = user_input_int("Task ID");
-        task_actions_menu(conn, task_id)?;
+        bulk_edit_menu(conn, &task_vector)?;
     }
 
     Ok(())
 }
 
-fn task_actions_menu(conn: &Connection, task_id: i32) -> Result<()> {
-    let task_vector = sql::task_vector_from_task_id(conn, task_id)?;
-    print_task_vector(task_vector)?;
+fn bulk_edit_menu(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> {
+    let mut all_ids: Vec<i32> = Vec::new();
+    for entry in task_vector.iter() {
+        all_ids.push(entry.id);
+    }
 
+    let selections = user_input("Enter 'all' or space seperated ID numbers");
+
+    let mut selected_ids = Vec::new();
+    if selections == "all" {
+        selected_ids = all_ids;
+    } else {
+        let mapped = selections.split_whitespace().map(|s| s.parse::<i32>().unwrap());
+        selected_ids = mapped.collect();
+    }
+
+    multiple_task_actions_menu(conn, &selected_ids)?;
+
+    let modified_tasks = sql::filter_by_id(conn, selected_ids)?;
+    print_task_vector(&modified_tasks)?;
+
+    Ok(())
+}
+
+fn multiple_task_actions_menu(conn: &Connection, id_vector: &Vec<i32>) -> Result<()> {
     let selected = &[
         "Modify Date",
         "Modify Project",
@@ -269,9 +289,11 @@ fn task_actions_menu(conn: &Connection, task_id: i32) -> Result<()> {
         .interact();
 
     match selection {
-        Ok(0) => user_input_modify_date(conn, task_id)?,
-        Ok(1) => user_input_modify_project(conn, task_id)?,
-        Ok(4) => sql::delete_task_by_id(conn, task_id)?,
+        Ok(0) => user_input_bulk_edit_date(conn, &id_vector)?,
+        Ok(1) => user_input_bulk_edit_project(conn, &id_vector)?,
+        Ok(2) => user_input_bulk_edit_notes(conn, &id_vector)?,
+        Ok(3) => user_input_bulk_edit_estimates(conn, &id_vector)?,
+        Ok(4) => bulk_delete(conn, &id_vector)?,
         Ok(_) => println!("Something went wrong"),
         Err(_err) => println!("Error"),
     }
@@ -279,19 +301,50 @@ fn task_actions_menu(conn: &Connection, task_id: i32) -> Result<()> {
     Ok(())
 }
 
-fn user_input_modify_date(conn: &Connection, task_id: i32) -> Result<()> {
-    let value = user_input_date("Date");
-    sql::modify_date(conn, task_id, value)?;
-    let task_vector = sql::task_vector_from_task_id(conn, task_id)?;
-    print_task_vector(task_vector)?;
+fn user_input_bulk_edit_date(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
+    let date = user_input_date("New Date");
+
+    for id in id_vec.iter() {
+        sql::modify_date(conn, id, &date)?;
+    }
+
     Ok(())
 }
 
-fn user_input_modify_project(conn: &Connection, task_id: i32) -> Result<()> {
-    let value = user_input("Project");
-    sql::modify_project(conn, task_id, value)?;
-    let task_vector = sql::task_vector_from_task_id(conn, task_id)?;
-    print_task_vector(task_vector)?;
+fn user_input_bulk_edit_project(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
+    let project = user_input("New Project");
+
+    for id in id_vec.iter() {
+        sql::modify_project(conn, id, &project)?;
+    }
+
+    Ok(())
+}
+
+fn user_input_bulk_edit_notes(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
+    let notes = user_input("Notes");
+
+    for id in id_vec.iter() {
+        sql::modify_notes(conn, id, &notes)?;
+    }
+
+    Ok(())
+}
+
+fn user_input_bulk_edit_estimates(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
+    let notes = user_input("Estimates");
+
+    for id in id_vec.iter() {
+        sql::modify_estimates(conn, id, &notes)?;
+    }
+
+    Ok(())
+}
+
+fn bulk_delete(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
+    for id in id_vec.iter() {
+        sql::delete_task_by_id(conn, id)?;
+    }
     Ok(())
 }
 
@@ -339,7 +392,7 @@ fn save_string_to_file(s: String, path: &str) -> Result<()> {
 }
 
 /// Prints tasks given a vector with Task structures
-fn print_task_vector(task_vector: Vec<Task>) -> Result<()> {
+fn print_task_vector(task_vector: &Vec<Task>) -> Result<()> {
     let mut table = Table::new();
     table.style = TableStyle::extended();
     table.add_row(Row::new(vec![
@@ -351,10 +404,10 @@ fn print_task_vector(task_vector: Vec<Task>) -> Result<()> {
     for task in task_vector {
         let t = task;
         table.add_row(Row::new(vec![
-            TableCell::new_with_alignment(t.id, 1, Alignment::Left),
-            TableCell::new_with_alignment(t.name, 1, Alignment::Left),
-            TableCell::new_with_alignment(t.project, 2, Alignment::Center),
-            TableCell::new_with_alignment(t.next, 2, Alignment::Center),
+            TableCell::new_with_alignment(&t.id, 1, Alignment::Left),
+            TableCell::new_with_alignment(&t.name, 1, Alignment::Left),
+            TableCell::new_with_alignment(&t.project, 2, Alignment::Center),
+            TableCell::new_with_alignment(&t.next, 2, Alignment::Center),
         ]));
     }
     println!("{}", table.render());

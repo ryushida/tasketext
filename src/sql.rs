@@ -49,17 +49,7 @@ pub fn add_task(conn: &Connection, t: Task) -> Result<()> {
     Ok(())
 }
 
-pub fn task_vector_from_task_id(conn: &Connection, task_id: i32) -> Result<Vec<Task>> {
-    let query = format!(
-        "SELECT id, name, project, start, estimate, repeat, next,
-                 notes, status FROM tasks WHERE id = '{}'",
-        task_id
-    );
-    let task_vector = query_to_vec_task(conn, &query).unwrap();
-    Ok(task_vector)
-}
-
-pub fn modify_date(conn: &Connection, task_id: i32, value: String) -> Result<()> {
+pub fn modify_date(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
     let query = format!(
         "UPDATE tasks SET next = '{}' WHERE id = '{}'",
         value, task_id
@@ -69,7 +59,7 @@ pub fn modify_date(conn: &Connection, task_id: i32, value: String) -> Result<()>
     Ok(())
 }
 
-pub fn modify_project(conn: &Connection, task_id: i32, value: String) -> Result<()> {
+pub fn modify_project(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
     let query = format!(
         "UPDATE tasks SET project = '{}' WHERE id = '{}'",
         value, task_id
@@ -79,7 +69,27 @@ pub fn modify_project(conn: &Connection, task_id: i32, value: String) -> Result<
     Ok(())
 }
 
-pub fn delete_task_by_id(conn: &Connection, id: i32) -> Result<()> {
+pub fn modify_notes(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
+    let query = format!(
+        "UPDATE tasks SET notes = '{}' WHERE id = '{}'",
+        value, task_id
+    );
+    conn.execute(&query, NO_PARAMS)?;
+
+    Ok(())
+}
+
+pub fn modify_estimates(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
+    let query = format!(
+        "UPDATE tasks SET estimate = '{}' WHERE id = '{}'",
+        value, task_id
+    );
+    conn.execute(&query, NO_PARAMS)?;
+
+    Ok(())
+}
+
+pub fn delete_task_by_id(conn: &Connection, id: &i32) -> Result<()> {
     let query = format!("DELETE FROM tasks WHERE id={}", id);
     conn.execute(&query, NO_PARAMS)?;
 
@@ -166,6 +176,28 @@ pub fn filter_by_repeat(conn: &Connection, date: String) -> Result<Vec<Task>> {
     let task_vector = query_to_vec_task(conn, &query)?;
 
     Ok(task_vector)
+}
+
+pub fn filter_by_id(conn: &Connection, id_vec: Vec<i32>) -> Result<Vec<Task>> {
+
+    let mut ids_string: String = "(".to_string();
+
+    for id in id_vec {
+        ids_string = ids_string + &id.to_string() + ", ";
+    }
+
+    let target_length = ids_string.len() - 2;
+    ids_string.truncate(target_length);
+    ids_string = ids_string + ")";
+
+    let query = format!(
+        "SELECT id, name, project, start, estimate,
+    repeat, next, notes, status FROM tasks
+    WHERE id IN {} ORDER BY start",
+        ids_string
+    );
+    let task_vector = query_to_vec_task(conn, &query)?;
+    Ok(task_vector.to_vec())
 }
 
 pub fn generate_daily_plan(conn: &Connection, target_date: &str) -> Result<String> {
