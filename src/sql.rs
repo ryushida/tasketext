@@ -69,7 +69,7 @@ pub fn modify_date(conn: &Connection, task_id: &i32, value: &str) -> Result<()> 
     Ok(())
 }
 
-pub fn modify_project(conn: &Connection, task_id: i32, value: String) -> Result<()> {
+pub fn modify_project(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
     let query = format!(
         "UPDATE tasks SET project = '{}' WHERE id = '{}'",
         value, task_id

@@ -291,7 +291,7 @@ fn user_input_modify_date(conn: &Connection, task_id: i32) -> Result<()> {
 
 fn user_input_modify_project(conn: &Connection, task_id: i32) -> Result<()> {
     let value = user_input("Project");
-    sql::modify_project(conn, task_id, value)?;
+    sql::modify_project(conn, &task_id, &value)?;
     let task_vector = sql::task_vector_from_task_id(conn, task_id)?;
     print_task_vector(&task_vector)?;
     Ok(())
@@ -351,6 +351,7 @@ fn multiple_task_actions_menu(conn: &Connection, id_vector: Vec<i32>) -> Result<
 
     match selection {
         Ok(0) => user_input_bulk_edit_date(conn, &id_vector)?,
+        Ok(1) => user_input_bulk_edit_project(conn, &id_vector)?,
         Ok(_) => println!("Something went wrong"),
         Err(_err) => println!("Error"),
     }
@@ -363,6 +364,16 @@ fn user_input_bulk_edit_date(conn: &Connection, id_vec: &Vec<i32>) -> Result<()>
 
     for id in id_vec.iter() {
         sql::modify_date(conn, id, &date)?;
+    }
+
+    Ok(())
+}
+
+fn user_input_bulk_edit_project(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
+    let date = user_input("New Project");
+
+    for id in id_vec.iter() {
+        sql::modify_project(conn, id, &date)?;
     }
 
     Ok(())
