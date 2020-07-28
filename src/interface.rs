@@ -2,7 +2,7 @@ use crate::sql;
 use crate::Task;
 use comfy_table::presets::ASCII_MARKDOWN;
 use dialoguer::Input;
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{theme::ColorfulTheme, Select, Confirm};
 use rusqlite::{Connection, Result};
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -16,6 +16,7 @@ use std::convert::TryInto;
 
 use crate::datetime;
 use crate::Log;
+use std::path::Path;
 
 pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
     let selected = &[
@@ -372,8 +373,18 @@ fn call_generate_daily_plan(conn: &Connection, dir: String) -> Result<()> {
     let plan_string = sql::generate_daily_plan(conn, &target_date)?;
 
     let file_path = [dir, target_date.replace("-", ""), ".md".to_string()].join("");
-    println!("{}", file_path);
-    save_string_to_file(plan_string, &file_path)?;
+    
+    if (Path::new(&file_path).exists()) {
+        let message = format!("Do you want to overwrite {}?", &file_path);
+        if Confirm::new().with_prompt(message).interact().unwrap() {
+            save_string_to_file(plan_string, &file_path)?;
+        } else {
+            println!("nevermind then :(");
+        }
+    } else {
+        println!("{}", file_path);
+        save_string_to_file(plan_string, &file_path)?;
+    }
 
     Ok(())
 }
