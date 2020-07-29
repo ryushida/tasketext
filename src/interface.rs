@@ -374,7 +374,7 @@ fn call_generate_daily_plan(conn: &Connection, dir: String) -> Result<()> {
 
     let file_path = [dir, target_date.replace("-", ""), ".md".to_string()].join("");
     
-    if (Path::new(&file_path).exists()) {
+    if Path::new(&file_path).exists() {
         let message = format!("Do you want to overwrite {}?", &file_path);
         if Confirm::new().with_prompt(message).interact().unwrap() {
             save_string_to_file(plan_string, &file_path)?;
