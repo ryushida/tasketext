@@ -12,7 +12,6 @@ use term_table::{
     table_cell::{Alignment, TableCell},
 };
 use term_table::{Table, TableStyle};
-use std::convert::TryInto;
 
 use crate::datetime;
 use crate::Log;
