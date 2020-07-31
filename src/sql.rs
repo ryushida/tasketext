@@ -78,8 +78,8 @@ pub fn modify_estimates(conn: &Connection, task_id: &i32, value: &str) -> Result
 }
 
 pub fn delete_task_by_id(conn: &Connection, id: &i32) -> Result<()> {
-    let query = format!("DELETE FROM tasks WHERE id={}", id);
-    conn.execute(&query, NO_PARAMS)?;
+    let mut stmt = conn.prepare("DELETE FROM tasks WHERE id=?")?;
+    stmt.execute(params![id])?;
 
     Ok(())
 }
