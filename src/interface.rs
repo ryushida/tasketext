@@ -276,6 +276,7 @@ fn bulk_edit_menu(conn: &Connection, task_vector: &Vec<Task>) -> Result<()> {
 fn multiple_task_actions_menu(conn: &Connection, id_vector: &Vec<i32>) -> Result<()> {
     let selected = &[
         "Modify Date",
+        "Modify Start Time",
         "Modify Project",
         "Modify Notes",
         "Modify Estimates",
@@ -290,6 +291,7 @@ fn multiple_task_actions_menu(conn: &Connection, id_vector: &Vec<i32>) -> Result
 
     match selection {
         Ok(0) => user_input_bulk_edit_date(conn, &id_vector)?,
+        Ok(1) => user_input_bulk_edit_start(conn, &id_vector)?,
         Ok(1) => user_input_bulk_edit_project(conn, &id_vector)?,
         Ok(2) => user_input_bulk_edit_notes(conn, &id_vector)?,
         Ok(3) => user_input_bulk_edit_estimates(conn, &id_vector)?,
@@ -306,6 +308,16 @@ fn user_input_bulk_edit_date(conn: &Connection, id_vec: &Vec<i32>) -> Result<()>
 
     for id in id_vec.iter() {
         sql::modify_date(conn, id, &date)?;
+    }
+
+    Ok(())
+}
+
+fn user_input_bulk_edit_start(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
+    let start = user_input("New Start Time");
+
+    for id in id_vec.iter() {
+        sql::modify_start(conn, id, &start)?;
     }
 
     Ok(())

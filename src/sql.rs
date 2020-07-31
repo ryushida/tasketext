@@ -56,6 +56,13 @@ pub fn modify_date(conn: &Connection, task_id: &i32, value: &str) -> Result<()> 
     Ok(())
 }
 
+pub fn modify_start(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
+    let mut stmt = conn.prepare("UPDATE tasks SET start = ? WHERE id = ?")?;
+    stmt.execute(params![value, task_id])?;
+
+    Ok(())
+}
+
 pub fn modify_project(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
     let mut stmt = conn.prepare("UPDATE tasks SET project = ? WHERE id = ?")?;
     stmt.execute(params![value, task_id])?;
