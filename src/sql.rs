@@ -50,41 +50,29 @@ pub fn add_task(conn: &Connection, t: Task) -> Result<()> {
 }
 
 pub fn modify_date(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
-    let query = format!(
-        "UPDATE tasks SET next = '{}' WHERE id = '{}'",
-        value, task_id
-    );
-    conn.execute(&query, NO_PARAMS)?;
+    let mut stmt = conn.prepare("UPDATE tasks SET next = ? WHERE id = ?")?;
+    stmt.execute(params![value, task_id])?;
 
     Ok(())
 }
 
 pub fn modify_project(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
-    let query = format!(
-        "UPDATE tasks SET project = '{}' WHERE id = '{}'",
-        value, task_id
-    );
-    conn.execute(&query, NO_PARAMS)?;
+    let mut stmt = conn.prepare("UPDATE tasks SET project = ? WHERE id = ?")?;
+    stmt.execute(params![value, task_id])?;
 
     Ok(())
 }
 
 pub fn modify_notes(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
-    let query = format!(
-        "UPDATE tasks SET notes = '{}' WHERE id = '{}'",
-        value, task_id
-    );
-    conn.execute(&query, NO_PARAMS)?;
+    let mut stmt = conn.prepare("UPDATE tasks SET notes = ? WHERE id = ?")?;
+    stmt.execute(params![value, task_id])?;
 
     Ok(())
 }
 
 pub fn modify_estimates(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
-    let query = format!(
-        "UPDATE tasks SET estimate = '{}' WHERE id = '{}'",
-        value, task_id
-    );
-    conn.execute(&query, NO_PARAMS)?;
+    let mut stmt = conn.prepare("UPDATE tasks SET estimate = ? WHERE id = ?")?;
+    stmt.execute(params![value, task_id])?;
 
     Ok(())
 }
