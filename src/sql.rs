@@ -378,21 +378,19 @@ pub fn daily_report_log_vector(
     selection: Result<usize, std::io::Error>,
     date_slice: &[String],
 ) -> Result<Vec<Log>> {
-    let query = format!(
-        "SELECT id, name, notes, project, date,
-                         start, end, review FROM log
-                         WHERE date = '{}' ORDER BY start",
-        date_slice[selection.unwrap()]
-    );
+    let query = "SELECT id, name, notes, project, date, start, end, review
+                 FROM log WHERE date = ? ORDER BY start";
 
-    let log_vector = query_to_vec_log(conn, &query)?;
+    let param = &date_slice[selection.unwrap()];
+
+    let log_vector = query_to_vec_log(conn, &query, param)?;
     Ok(log_vector)
 }
 
-fn query_to_vec_log(conn: &Connection, query: &str) -> Result<Vec<Log>> {
+fn query_to_vec_log(conn: &Connection, query: &str, param: &str) -> Result<Vec<Log>> {
     let mut stmt = conn.prepare(&query)?;
 
-    let log_iter = stmt.query_map(params![], |row| {
+    let log_iter = stmt.query_map(params![param], |row| {
         Ok(Log {
             id: row.get(0)?,
             name: row.get(1)?,
