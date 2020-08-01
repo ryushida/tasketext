@@ -292,10 +292,10 @@ fn multiple_task_actions_menu(conn: &Connection, id_vector: &Vec<i32>) -> Result
     match selection {
         Ok(0) => user_input_bulk_edit_date(conn, &id_vector)?,
         Ok(1) => user_input_bulk_edit_start(conn, &id_vector)?,
-        Ok(1) => user_input_bulk_edit_project(conn, &id_vector)?,
-        Ok(2) => user_input_bulk_edit_notes(conn, &id_vector)?,
-        Ok(3) => user_input_bulk_edit_estimates(conn, &id_vector)?,
-        Ok(4) => bulk_delete(conn, &id_vector)?,
+        Ok(2) => user_input_bulk_edit_project(conn, &id_vector)?,
+        Ok(3) => user_input_bulk_edit_notes(conn, &id_vector)?,
+        Ok(4) => user_input_bulk_edit_estimates(conn, &id_vector)?,
+        Ok(5) => bulk_delete(conn, &id_vector)?,
         Ok(_) => println!("Something went wrong"),
         Err(_err) => println!("Error"),
     }
