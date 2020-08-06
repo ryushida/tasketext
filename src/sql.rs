@@ -58,6 +58,13 @@ pub fn add_task(conn: &Connection, t: Task) -> Result<()> {
     Ok(())
 }
 
+pub fn get_last_id(conn: &Connection) -> Result<i32> {
+    let mut stmt = conn.prepare("SELECT MAX(id) FROM tasks")?;
+    let id = stmt.query_row(NO_PARAMS, |r| r.get(0))?;
+
+    Ok(id)
+}
+
 pub fn modify_date(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
     let mut stmt = conn.prepare("UPDATE tasks SET next = ? WHERE id = ?")?;
     stmt.execute(params![value, task_id])?;

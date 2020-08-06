@@ -181,6 +181,7 @@ fn call_add_task(conn: &Connection) -> Result<()> {
     };
 
     sql::add_task(conn, t)?;
+    let id = sql::get_last_id(conn)?;
 
     Ok(())
 }
