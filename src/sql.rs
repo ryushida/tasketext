@@ -65,6 +65,13 @@ pub fn get_last_id(conn: &Connection) -> Result<i32> {
     Ok(id)
 }
 
+pub fn add_note(conn: &Connection, id: i32, start: &str, end: &str, text: &str) -> Result<()> {
+    let query: &str = "INSERT INTO note (id, start, end, notetext) VALUES (?1, ?2, ?3, ?4)";
+    let param_slice = params![id, start, end, text];
+    execute_insert_query(conn, query, param_slice)?;
+    Ok(())
+}
+
 pub fn modify_date(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
     let mut stmt = conn.prepare("UPDATE tasks SET next = ? WHERE id = ?")?;
     stmt.execute(params![value, task_id])?;
