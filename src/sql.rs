@@ -20,6 +20,15 @@ pub fn init(conn: &Connection) -> Result<()> {
         NO_PARAMS,
     )?;
     conn.execute(
+        "create table if not exists note (
+            id INTEGER PRIMARY KEY,
+            start TEXT,
+            end TEXT,
+            notetext TEXT NOT NULL
+        )",
+        NO_PARAMS,
+    )?;
+    conn.execute(
         "create table if not exists log (
             id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, notes TEXT,
             project TEXT, date TEXT, start TEXT, end TEXT,
