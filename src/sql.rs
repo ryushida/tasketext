@@ -6,8 +6,11 @@ use std::fmt;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error};
 use std::str;
+use std::rc::Rc;
+use rusqlite::types::Value as SqlValue;
 
 use crate::Log;
+use crate::Note;
 
 /// Creates tables in SQLite Database
 pub fn init(conn: &Connection) -> Result<()> {
@@ -21,10 +24,11 @@ pub fn init(conn: &Connection) -> Result<()> {
     )?;
     conn.execute(
         "create table if not exists note (
-            id INTEGER PRIMARY KEY,
+            id INTEGER,
             start TEXT,
             end TEXT,
-            notetext TEXT NOT NULL
+            notetext TEXT NOT NULL,
+            PRIMARY KEY(id, start)
         )",
         NO_PARAMS,
     )?;
@@ -105,6 +109,37 @@ pub fn modify_estimates(conn: &Connection, task_id: &i32, value: &str) -> Result
     stmt.execute(params![value, task_id])?;
 
     Ok(())
+}
+
+pub fn get_all_notes(conn: &Connection, id_vec: &[i32]) -> Result<Vec<Note>> {
+    rusqlite::vtab::array::load_module(&conn)?;
+
+    let mut stmt = conn.prepare("SELECT n.id, n.start, n.notetext
+                                                 FROM note as n
+                                                 WHERE n.id IN rarray(?);")?;
+
+    let note_ids: Vec<SqlValue> = id_vec
+        .into_iter()
+        .map(|i| SqlValue::from(*i))
+        .collect();
+    let note_ids_ptr = Rc::new(note_ids);
+
+    let notes_iter = stmt.query_map(params![&note_ids_ptr], |row| {
+        Ok(Note {
+            id: row.get(0)?,
+            start: row.get(1)?,
+            notetext: row.get(2)?,
+        })
+    })?;
+
+    let mut selected_notes: Vec<Note> = Vec::new();
+
+    for note in notes_iter {
+        let n = note.unwrap();
+        selected_notes.push(n);
+    }
+
+    Ok(selected_notes)    
 }
 
 pub fn delete_task_by_id(conn: &Connection, id: &i32) -> Result<()> {

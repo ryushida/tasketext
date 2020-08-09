@@ -36,6 +36,13 @@ pub struct Log {
     pub review: String,
 }
 
+#[derive(Debug)]
+pub struct Note {
+    pub id: i32,
+    pub start: String,
+    pub notetext: String,
+}
+
 impl fmt::Display for Task {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
@@ -49,6 +56,12 @@ impl fmt::Display for Task {
 impl fmt::Display for Log {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "- {} ({})", self.id, self.name)
+    }
+}
+
+impl fmt::Display for Note {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{} {} {}", self.id, self.start, self.notetext)
     }
 }
 
