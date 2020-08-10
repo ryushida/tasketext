@@ -15,6 +15,7 @@ use term_table::{Table, TableStyle};
 
 use crate::datetime;
 use crate::Log;
+use crate::Note;
 use std::path::Path;
 
 pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
@@ -337,10 +338,8 @@ fn user_input_bulk_edit_project(conn: &Connection, id_vec: &Vec<i32>) -> Result<
 
 fn user_input_bulk_edit_notes(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
     let notes = sql::get_all_notes(conn, &id_vec.to_vec())?;
-
-    for note in notes {
-        println!("{}", note);
-    }
+    
+    print_note_vector(&notes)?;
 
     Ok(())
 }
@@ -432,6 +431,32 @@ fn print_task_vector(task_vector: &Vec<Task>) -> Result<()> {
             TableCell::new_with_alignment(&t.name, 1, Alignment::Left),
             TableCell::new_with_alignment(&t.project, 2, Alignment::Center),
             TableCell::new_with_alignment(&t.next, 2, Alignment::Center),
+        ]));
+    }
+    println!("{}", table.render());
+
+    Ok(())
+}
+
+/// Prints notes given a vector with Note structures
+fn print_note_vector(note_vector: &Vec<Note>) -> Result<()> {
+    let mut table = Table::new();
+    table.style = TableStyle::extended();
+    table.set_max_column_widths(vec![(0, 5), (1, 40), (2, 31), (3, 10)]);
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment("ID", 1, Alignment::Left),
+        TableCell::new_with_alignment("Note", 1, Alignment::Center),
+        TableCell::new_with_alignment("Name", 2, Alignment::Center),
+        TableCell::new_with_alignment("Start Date", 2, Alignment::Center),
+    ]));
+    for note in note_vector {
+        let n = note;
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment(&n.id, 1, Alignment::Left),
+            TableCell::new_with_alignment(&n.notetext, 1, Alignment::Left),
+            TableCell::new_with_alignment(&n.name, 2, Alignment::Left),
+            TableCell::new_with_alignment(&n.start, 2, Alignment::Center),
+            
         ]));
     }
     println!("{}", table.render());
