@@ -114,9 +114,16 @@ pub fn modify_estimates(conn: &Connection, task_id: &i32, value: &str) -> Result
 pub fn get_all_notes(conn: &Connection, id_vec: &[i32]) -> Result<Vec<Note>> {
     rusqlite::vtab::array::load_module(&conn)?;
 
-    let mut stmt = conn.prepare("SELECT n.id, n.start, n.notetext
-                                                 FROM note as n
-                                                 WHERE n.id IN rarray(?);")?;
+    let mut stmt = conn.prepare("SELECT t.id, t.name,
+                                                 ifnull(n.start, ''),
+                                                 ifnull(n.notetext, '')
+                                                 FROM tasks as t
+                                                 LEFT OUTER JOIN(
+                                                    SELECT id, start, notetext
+                                                    FROM note
+                                                    WHERE id IN rarray(?)) as n
+                                                 ON t.id = n.id
+                                                 WHERE t.id IN rarray(?)")?;
 
     let note_ids: Vec<SqlValue> = id_vec
         .into_iter()
@@ -124,11 +131,12 @@ pub fn get_all_notes(conn: &Connection, id_vec: &[i32]) -> Result<Vec<Note>> {
         .collect();
     let note_ids_ptr = Rc::new(note_ids);
 
-    let notes_iter = stmt.query_map(params![&note_ids_ptr], |row| {
+    let notes_iter = stmt.query_map(params![&note_ids_ptr, &note_ids_ptr], |row| {
         Ok(Note {
             id: row.get(0)?,
-            start: row.get(1)?,
-            notetext: row.get(2)?,
+            name: row.get(1)?,
+            start: row.get(2)?,
+            notetext: row.get(3)?,
         })
     })?;
 
