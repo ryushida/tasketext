@@ -206,6 +206,17 @@ pub fn filter_by_date(conn: &Connection, date: &str) -> Result<Vec<Task>> {
     Ok(task_vector)
 }
 
+pub fn filter_by_date_plan(conn: &Connection, date: &str) -> Result<Vec<Task>> {
+    let query = format!(
+        "SELECT id, name, project, start, estimate,
+                         repeat, next, notes, status FROM tasks
+                         WHERE next = '{}' ORDER BY start",
+        date
+    );
+    let task_vector = query_to_vec_task(conn, &query)?;
+    Ok(task_vector)
+}
+
 pub fn filter_by_project(conn: &Connection, date: String) -> Result<Vec<Task>> {
     let query = format!(
         "SELECT id, name, project, start, estimate,
@@ -265,7 +276,7 @@ pub fn filter_by_id(conn: &Connection, id_vec: Vec<i32>) -> Result<Vec<Task>> {
 }
 
 pub fn generate_daily_plan(conn: &Connection, target_date: &str) -> Result<String> {
-    let vec = filter_by_date(conn, target_date);
+    let vec = filter_by_date_plan(conn, target_date);
     let plan_string = vector_to_daily_plan(vec)?;
 
     Ok(plan_string)
