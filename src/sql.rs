@@ -97,9 +97,9 @@ pub fn modify_project(conn: &Connection, task_id: &i32, value: &str) -> Result<(
     Ok(())
 }
 
-pub fn modify_notes(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
-    let mut stmt = conn.prepare("UPDATE tasks SET notes = ? WHERE id = ?")?;
-    stmt.execute(params![value, task_id])?;
+pub fn modify_notes(conn: &Connection, task_id: &i32, start: &str, value: &str) -> Result<()> {
+    let mut stmt = conn.prepare("UPDATE note SET notetext = ? WHERE id = ? and start = ?")?;
+    stmt.execute(params![value, task_id, start])?;
 
     Ok(())
 }

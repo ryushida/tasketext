@@ -338,7 +338,15 @@ fn user_input_bulk_edit_project(conn: &Connection, id_vec: &Vec<i32>) -> Result<
 
 fn user_input_bulk_edit_notes(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
     let notes = sql::get_all_notes(conn, &id_vec.to_vec())?;
-    
+    print_note_vector(&notes)?;
+
+    let id = user_input_int("Task ID");
+    let start = user_input_date("Start Date");
+    let new_note = user_input("New Note");
+
+    sql::modify_notes(conn, &id, &start, &new_note)?;
+
+    let notes = sql::get_all_notes(conn, &id_vec.to_vec())?;
     print_note_vector(&notes)?;
 
     Ok(())
