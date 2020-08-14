@@ -17,7 +17,7 @@ pub fn init(conn: &Connection) -> Result<()> {
     conn.execute(
         "create table if not exists tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT, name TEXT,
-            notes TEXT, project TEXT, start TEXT,
+            project TEXT, start TEXT,
             estimate INTEGER, repeat TEXT, next TEXT
          )",
         NO_PARAMS,
