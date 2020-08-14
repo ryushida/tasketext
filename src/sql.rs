@@ -185,7 +185,9 @@ fn query_to_vec_task(conn: &Connection, query: &str) -> Result<Vec<Task>> {
 
 pub fn filter_status_active(conn: &Connection) -> Result<Vec<Task>> {
     let query = "SELECT id, name, project, start, estimate, repeat, next,
-                 notes, status FROM tasks WHERE status = 'ACTIVE'";
+                 '', status
+                 FROM tasks
+                 WHERE status = 'ACTIVE'";
     let task_vector = query_to_vec_task(conn, query)?;
 
     Ok(task_vector)
@@ -231,9 +233,9 @@ pub fn filter_by_date_plan(conn: &Connection, date: &str) -> Result<Vec<Task>> {
 
 pub fn filter_by_project(conn: &Connection, date: String) -> Result<Vec<Task>> {
     let query = format!(
-        "SELECT id, name, project, start, estimate,
-    repeat, next, notes, status FROM tasks
-    WHERE project = '{}' ORDER BY start",
+        "SELECT id, name, project, start, estimate, repeat, next, '', status
+        FROM tasks
+        WHERE project = '{}' ORDER BY start",
         date
     );
 
@@ -243,9 +245,10 @@ pub fn filter_by_project(conn: &Connection, date: String) -> Result<Vec<Task>> {
 }
 
 pub fn filter_by_routine(conn: &Connection) -> Result<Vec<Task>> {
-    let query = "SELECT id, name, project, start, estimate,
-    repeat, next, notes, status FROM tasks
-    WHERE repeat <> '' ORDER BY start";
+    let query = "SELECT id, name, project, start, estimate, repeat, next,
+                 '', status FROM tasks
+                 WHERE repeat <> ''
+                 ORDER BY start";
 
     let task_vector = query_to_vec_task(conn, &query)?;
 
@@ -254,9 +257,10 @@ pub fn filter_by_routine(conn: &Connection) -> Result<Vec<Task>> {
 
 pub fn filter_by_repeat(conn: &Connection, date: String) -> Result<Vec<Task>> {
     let query = format!(
-        "SELECT id, name, project, start, estimate,
-    repeat, next, notes, status FROM tasks
-    WHERE repeat = '{}' ORDER BY start",
+        "SELECT id, name, project, start, estimate, repeat, next, '', status
+         FROM tasks
+         WHERE repeat = '{}'
+         ORDER BY start",
         date
     );
 
@@ -278,9 +282,10 @@ pub fn filter_by_id(conn: &Connection, id_vec: Vec<i32>) -> Result<Vec<Task>> {
     ids_string = ids_string + ")";
 
     let query = format!(
-        "SELECT id, name, project, start, estimate,
-    repeat, next, notes, status FROM tasks
-    WHERE id IN {} ORDER BY start",
+        "SELECT id, name, project, start, estimate, repeat, next, '', status
+         FROM tasks
+         WHERE id IN {}
+         ORDER BY start",
         ids_string
     );
     let task_vector = query_to_vec_task(conn, &query)?;
