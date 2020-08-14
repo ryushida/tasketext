@@ -51,12 +51,12 @@ fn execute_insert_query(conn: &Connection, query: &str, param_slice: &[&ToSql]) 
 }
 
 pub fn add_task(conn: &Connection, t: Task) -> Result<()> {
-    let query = "INSERT INTO tasks (status, name, notes, project, start,
+    let query = "INSERT INTO tasks (status, name, project, start,
         estimate, repeat, next)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7,?8)";
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)";
 
     let param_slice =
-        params![t.status, t.name, t.notes, t.project, t.start, t.estimate, t.repeat, t.next];
+        params![t.status, t.name, t.project, t.start, t.estimate, t.repeat, t.next];
     execute_insert_query(conn, query, param_slice)?;
 
     Ok(())
