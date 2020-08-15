@@ -15,6 +15,7 @@ use term_table::{Table, TableStyle};
 
 use crate::datetime;
 use crate::Log;
+use crate::Note;
 use std::path::Path;
 
 pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
@@ -181,6 +182,10 @@ fn call_add_task(conn: &Connection) -> Result<()> {
     };
 
     sql::add_task(conn, t)?;
+    let id = sql::get_last_id(conn)?;
+    if !notes.trim().is_empty() {
+        sql::add_note(conn, id, next.trim(), "", notes.trim())?;
+    }
 
     Ok(())
 }
@@ -278,7 +283,7 @@ fn multiple_task_actions_menu(conn: &Connection, id_vector: &Vec<i32>) -> Result
         "Modify Date",
         "Modify Start Time",
         "Modify Project",
-        "Modify Notes",
+        "Modify/Add Notes",
         "Modify Estimates",
         "Delete Task",
         "quit",
@@ -334,11 +339,34 @@ fn user_input_bulk_edit_project(conn: &Connection, id_vec: &Vec<i32>) -> Result<
 }
 
 fn user_input_bulk_edit_notes(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
-    let notes = user_input("Notes");
+    let notes = sql::get_all_notes(conn, &id_vec.to_vec())?;
+    print_note_vector(&notes)?;
 
-    for id in id_vec.iter() {
-        sql::modify_notes(conn, id, &notes)?;
+    let id = user_input_int("Task ID");
+    let start = user_input_date("Start Date");
+
+    let note_count = sql::note_num_exist(conn, id, &start)?;
+    
+    if note_count == 0 {
+        let new_note = user_input("New Note");
+        sql::add_note(conn, id, start.trim(), "", new_note.trim())?
     }
+    else if note_count > 0 {
+        let selection = user_input("Modify: mod or Delete: del");
+        if selection == "mod" {
+            let new_note = user_input("New Note");
+            sql::modify_notes(conn, &id, &start, &new_note)?;
+        }
+        else if selection == "del" {
+            sql::delete_note_by_id_date(conn, &id, &start)?;
+        } 
+    }
+    else {
+        println!("Something Wrong");
+    }
+
+    let notes = sql::get_all_notes(conn, &id_vec.to_vec())?;
+    print_note_vector(&notes)?;
 
     Ok(())
 }
@@ -430,6 +458,32 @@ fn print_task_vector(task_vector: &Vec<Task>) -> Result<()> {
             TableCell::new_with_alignment(&t.name, 1, Alignment::Left),
             TableCell::new_with_alignment(&t.project, 2, Alignment::Center),
             TableCell::new_with_alignment(&t.next, 2, Alignment::Center),
+        ]));
+    }
+    println!("{}", table.render());
+
+    Ok(())
+}
+
+/// Prints notes given a vector with Note structures
+fn print_note_vector(note_vector: &Vec<Note>) -> Result<()> {
+    let mut table = Table::new();
+    table.style = TableStyle::extended();
+    table.set_max_column_widths(vec![(0, 5), (1, 40), (2, 31), (3, 10)]);
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment("ID", 1, Alignment::Left),
+        TableCell::new_with_alignment("Note", 1, Alignment::Center),
+        TableCell::new_with_alignment("Name", 2, Alignment::Center),
+        TableCell::new_with_alignment("Start Date", 2, Alignment::Center),
+    ]));
+    for note in note_vector {
+        let n = note;
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment(&n.id, 1, Alignment::Left),
+            TableCell::new_with_alignment(&n.notetext, 1, Alignment::Left),
+            TableCell::new_with_alignment(&n.name, 2, Alignment::Left),
+            TableCell::new_with_alignment(&n.start, 2, Alignment::Center),
+            
         ]));
     }
     println!("{}", table.render());

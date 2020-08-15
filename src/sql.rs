@@ -6,17 +6,30 @@ use std::fmt;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error};
 use std::str;
+use std::rc::Rc;
+use rusqlite::types::Value as SqlValue;
 
 use crate::Log;
+use crate::Note;
 
 /// Creates tables in SQLite Database
 pub fn init(conn: &Connection) -> Result<()> {
     conn.execute(
         "create table if not exists tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT, name TEXT,
-            notes TEXT, project TEXT, start TEXT,
+            project TEXT, start TEXT,
             estimate INTEGER, repeat TEXT, next TEXT
          )",
+        NO_PARAMS,
+    )?;
+    conn.execute(
+        "create table if not exists note (
+            id INTEGER,
+            start TEXT,
+            end TEXT,
+            notetext TEXT NOT NULL,
+            PRIMARY KEY(id, start)
+        )",
         NO_PARAMS,
     )?;
     conn.execute(
@@ -38,14 +51,38 @@ fn execute_insert_query(conn: &Connection, query: &str, param_slice: &[&ToSql]) 
 }
 
 pub fn add_task(conn: &Connection, t: Task) -> Result<()> {
-    let query = "INSERT INTO tasks (status, name, notes, project, start,
+    let query = "INSERT INTO tasks (status, name, project, start,
         estimate, repeat, next)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7,?8)";
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)";
 
     let param_slice =
-        params![t.status, t.name, t.notes, t.project, t.start, t.estimate, t.repeat, t.next];
+        params![t.status, t.name, t.project, t.start, t.estimate, t.repeat, t.next];
     execute_insert_query(conn, query, param_slice)?;
 
+    Ok(())
+}
+
+pub fn get_last_id(conn: &Connection) -> Result<i32> {
+    let mut stmt = conn.prepare("SELECT MAX(id) FROM tasks")?;
+    let id = stmt.query_row(NO_PARAMS, |r| r.get(0))?;
+
+    Ok(id)
+}
+
+pub fn note_num_exist(conn: &Connection, id: i32, start: &str) -> Result<i32> {
+    let count: i32 = conn.query_row("SELECT COUNT(notetext)
+                                     FROM note
+                                     WHERE id = ?1 and start = ?2 and notetext <> ''",
+                                     &[&id as &dyn rusqlite::types::ToSql, &start as &dyn rusqlite::types::ToSql],
+                                     |row| row.get(0))?;
+
+    Ok(count)
+}
+
+pub fn add_note(conn: &Connection, id: i32, start: &str, end: &str, text: &str) -> Result<()> {
+    let query: &str = "INSERT INTO note (id, start, end, notetext) VALUES (?1, ?2, ?3, ?4)";
+    let param_slice = params![id, start, end, text];
+    execute_insert_query(conn, query, param_slice)?;
     Ok(())
 }
 
@@ -70,9 +107,9 @@ pub fn modify_project(conn: &Connection, task_id: &i32, value: &str) -> Result<(
     Ok(())
 }
 
-pub fn modify_notes(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
-    let mut stmt = conn.prepare("UPDATE tasks SET notes = ? WHERE id = ?")?;
-    stmt.execute(params![value, task_id])?;
+pub fn modify_notes(conn: &Connection, task_id: &i32, start: &str, value: &str) -> Result<()> {
+    let mut stmt = conn.prepare("UPDATE note SET notetext = ? WHERE id = ? and start = ?")?;
+    stmt.execute(params![value, task_id, start])?;
 
     Ok(())
 }
@@ -84,9 +121,55 @@ pub fn modify_estimates(conn: &Connection, task_id: &i32, value: &str) -> Result
     Ok(())
 }
 
+pub fn get_all_notes(conn: &Connection, id_vec: &[i32]) -> Result<Vec<Note>> {
+    rusqlite::vtab::array::load_module(&conn)?;
+
+    let mut stmt = conn.prepare("SELECT t.id, t.name,
+                                                 ifnull(n.start, ''),
+                                                 ifnull(n.notetext, '')
+                                                 FROM tasks as t
+                                                 LEFT OUTER JOIN(
+                                                    SELECT id, start, notetext
+                                                    FROM note
+                                                    WHERE id IN rarray(?)) as n
+                                                 ON t.id = n.id
+                                                 WHERE t.id IN rarray(?)")?;
+
+    let note_ids: Vec<SqlValue> = id_vec
+        .into_iter()
+        .map(|i| SqlValue::from(*i))
+        .collect();
+    let note_ids_ptr = Rc::new(note_ids);
+
+    let notes_iter = stmt.query_map(params![&note_ids_ptr, &note_ids_ptr], |row| {
+        Ok(Note {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            start: row.get(2)?,
+            notetext: row.get(3)?,
+        })
+    })?;
+
+    let mut selected_notes: Vec<Note> = Vec::new();
+
+    for note in notes_iter {
+        let n = note.unwrap();
+        selected_notes.push(n);
+    }
+
+    Ok(selected_notes)    
+}
+
 pub fn delete_task_by_id(conn: &Connection, id: &i32) -> Result<()> {
     let mut stmt = conn.prepare("DELETE FROM tasks WHERE id=?")?;
     stmt.execute(params![id])?;
+
+    Ok(())
+}
+
+pub fn delete_note_by_id_date(conn: &Connection, id: &i32, date: &str) -> Result<()> {
+    let mut stmt = conn.prepare("DELETE FROM note WHERE id = ? and start = ?")?;
+    stmt.execute(params![id, date])?;
 
     Ok(())
 }
@@ -119,7 +202,9 @@ fn query_to_vec_task(conn: &Connection, query: &str) -> Result<Vec<Task>> {
 
 pub fn filter_status_active(conn: &Connection) -> Result<Vec<Task>> {
     let query = "SELECT id, name, project, start, estimate, repeat, next,
-                 notes, status FROM tasks WHERE status = 'ACTIVE'";
+                 '', status
+                 FROM tasks
+                 WHERE status = 'ACTIVE'";
     let task_vector = query_to_vec_task(conn, query)?;
 
     Ok(task_vector)
@@ -127,21 +212,55 @@ pub fn filter_status_active(conn: &Connection) -> Result<Vec<Task>> {
 
 pub fn filter_by_date(conn: &Connection, date: &str) -> Result<Vec<Task>> {
     let query = format!(
-        "SELECT id, name, project, start, estimate,
-                         repeat, next, notes, status FROM tasks
-                         WHERE next = '{}' ORDER BY start",
-        date
+        "SELECT t.id, t.name, t.project, t.start, t.estimate,
+                         t.repeat, t.next, ifnull(n.notetext, ''), t.status
+                         FROM tasks as t
+                         LEFT OUTER JOIN (
+                            SELECT *
+                            FROM (
+                                SELECT id, MAX(start) as start, notetext
+                                FROM note
+                                GROUP BY id)
+                            WHERE date(start) <= '{}'
+                            ORDER BY id
+                        ) as n
+                         ON t.id = n.id
+                         WHERE t.next = '{}' ORDER BY t.start",
+        date, date
     );
     let task_vector = query_to_vec_task(conn, &query)?;
 
     Ok(task_vector)
 }
 
+pub fn filter_by_date_plan(conn: &Connection, date: &str) -> Result<Vec<Task>> {
+    let query = format!(
+        "SELECT t.id, t.name, t.project, t.start, t.estimate,
+        t.repeat, t.next, ifnull(n.notetext, ''), t.status
+        FROM tasks as t
+        LEFT OUTER JOIN (
+			SELECT id, MAX(start), notetext
+			FROM (
+				SELECT id, start, notetext
+				FROM note
+				WHERE date(start) <= '{}'
+				ORDER BY id)
+			GROUP BY id
+        ) as n
+        on t.id = n.id
+		WHERE t.next = '{}'
+        ORDER BY t.start",
+        date, date
+    );
+    let task_vector = query_to_vec_task(conn, &query)?;
+    Ok(task_vector)
+}
+
 pub fn filter_by_project(conn: &Connection, date: String) -> Result<Vec<Task>> {
     let query = format!(
-        "SELECT id, name, project, start, estimate,
-    repeat, next, notes, status FROM tasks
-    WHERE project = '{}' ORDER BY start",
+        "SELECT id, name, project, start, estimate, repeat, next, '', status
+        FROM tasks
+        WHERE project = '{}' ORDER BY start",
         date
     );
 
@@ -151,9 +270,10 @@ pub fn filter_by_project(conn: &Connection, date: String) -> Result<Vec<Task>> {
 }
 
 pub fn filter_by_routine(conn: &Connection) -> Result<Vec<Task>> {
-    let query = "SELECT id, name, project, start, estimate,
-    repeat, next, notes, status FROM tasks
-    WHERE repeat <> '' ORDER BY start";
+    let query = "SELECT id, name, project, start, estimate, repeat, next,
+                 '', status FROM tasks
+                 WHERE repeat <> ''
+                 ORDER BY start";
 
     let task_vector = query_to_vec_task(conn, &query)?;
 
@@ -162,9 +282,10 @@ pub fn filter_by_routine(conn: &Connection) -> Result<Vec<Task>> {
 
 pub fn filter_by_repeat(conn: &Connection, date: String) -> Result<Vec<Task>> {
     let query = format!(
-        "SELECT id, name, project, start, estimate,
-    repeat, next, notes, status FROM tasks
-    WHERE repeat = '{}' ORDER BY start",
+        "SELECT id, name, project, start, estimate, repeat, next, '', status
+         FROM tasks
+         WHERE repeat = '{}'
+         ORDER BY start",
         date
     );
 
@@ -186,9 +307,10 @@ pub fn filter_by_id(conn: &Connection, id_vec: Vec<i32>) -> Result<Vec<Task>> {
     ids_string = ids_string + ")";
 
     let query = format!(
-        "SELECT id, name, project, start, estimate,
-    repeat, next, notes, status FROM tasks
-    WHERE id IN {} ORDER BY start",
+        "SELECT id, name, project, start, estimate, repeat, next, '', status
+         FROM tasks
+         WHERE id IN {}
+         ORDER BY start",
         ids_string
     );
     let task_vector = query_to_vec_task(conn, &query)?;
@@ -196,7 +318,7 @@ pub fn filter_by_id(conn: &Connection, id_vec: Vec<i32>) -> Result<Vec<Task>> {
 }
 
 pub fn generate_daily_plan(conn: &Connection, target_date: &str) -> Result<String> {
-    let vec = filter_by_date(conn, target_date);
+    let vec = filter_by_date_plan(conn, target_date);
     let plan_string = vector_to_daily_plan(vec)?;
 
     Ok(plan_string)
