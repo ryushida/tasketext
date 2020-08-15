@@ -69,6 +69,16 @@ pub fn get_last_id(conn: &Connection) -> Result<i32> {
     Ok(id)
 }
 
+pub fn note_num_exist(conn: &Connection, id: i32, start: &str) -> Result<i32> {
+    let count: i32 = conn.query_row("SELECT COUNT(notetext)
+                                     FROM note
+                                     WHERE id = ?1 and start = ?2 and notetext <> ''",
+                                     &[&id as &dyn rusqlite::types::ToSql, &start as &dyn rusqlite::types::ToSql],
+                                     |row| row.get(0))?;
+
+    Ok(count)
+}
+
 pub fn add_note(conn: &Connection, id: i32, start: &str, end: &str, text: &str) -> Result<()> {
     let query: &str = "INSERT INTO note (id, start, end, notetext) VALUES (?1, ?2, ?3, ?4)";
     let param_slice = params![id, start, end, text];

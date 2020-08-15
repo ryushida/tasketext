@@ -281,7 +281,7 @@ fn multiple_task_actions_menu(conn: &Connection, id_vector: &Vec<i32>) -> Result
         "Modify Date",
         "Modify Start Time",
         "Modify Project",
-        "Modify Notes",
+        "Modify/Add Notes",
         "Modify Estimates",
         "Delete Task",
         "quit",
@@ -344,7 +344,15 @@ fn user_input_bulk_edit_notes(conn: &Connection, id_vec: &Vec<i32>) -> Result<()
     let start = user_input_date("Start Date");
     let new_note = user_input("New Note");
 
-    sql::modify_notes(conn, &id, &start, &new_note)?;
+    let note_count = sql::note_num_exist(conn, id, &start)?;
+    
+    if note_count == 0 {
+        sql::add_note(conn, id, start.trim(), "", new_note.trim())?
+    } else if note_count > 0 {
+        sql::modify_notes(conn, &id, &start, &new_note)?
+    } else {
+        println!("Something Wrong");
+    }
 
     let notes = sql::get_all_notes(conn, &id_vec.to_vec())?;
     print_note_vector(&notes)?;
