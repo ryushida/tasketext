@@ -183,7 +183,9 @@ fn call_add_task(conn: &Connection) -> Result<()> {
 
     sql::add_task(conn, t)?;
     let id = sql::get_last_id(conn)?;
-    sql::add_note(conn, id, next.trim(), "", notes.trim())?;
+    if !notes.trim().is_empty() {
+        sql::add_note(conn, id, next.trim(), "", notes.trim())?;
+    }
 
     Ok(())
 }
