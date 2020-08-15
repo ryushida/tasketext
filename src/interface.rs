@@ -342,15 +342,24 @@ fn user_input_bulk_edit_notes(conn: &Connection, id_vec: &Vec<i32>) -> Result<()
 
     let id = user_input_int("Task ID");
     let start = user_input_date("Start Date");
-    let new_note = user_input("New Note");
 
     let note_count = sql::note_num_exist(conn, id, &start)?;
     
     if note_count == 0 {
+        let new_note = user_input("New Note");
         sql::add_note(conn, id, start.trim(), "", new_note.trim())?
-    } else if note_count > 0 {
-        sql::modify_notes(conn, &id, &start, &new_note)?
-    } else {
+    }
+    else if note_count > 0 {
+        let selection = user_input("Modify: mod or Delete: del");
+        if selection == "mod" {
+            let new_note = user_input("New Note");
+            sql::modify_notes(conn, &id, &start, &new_note)?;
+        }
+        else if selection == "del" {
+            sql::delete_note_by_id_date(conn, &id, &start)?;
+        } 
+    }
+    else {
         println!("Something Wrong");
     }
 

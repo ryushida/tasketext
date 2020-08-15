@@ -167,6 +167,13 @@ pub fn delete_task_by_id(conn: &Connection, id: &i32) -> Result<()> {
     Ok(())
 }
 
+pub fn delete_note_by_id_date(conn: &Connection, id: &i32, date: &str) -> Result<()> {
+    let mut stmt = conn.prepare("DELETE FROM note WHERE id = ? and start = ?")?;
+    stmt.execute(params![id, date])?;
+
+    Ok(())
+}
+
 fn query_to_vec_task(conn: &Connection, query: &str) -> Result<Vec<Task>> {
     let mut stmt = conn.prepare(&query)?;
 
