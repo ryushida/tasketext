@@ -208,10 +208,18 @@ pub fn filter_by_date(conn: &Connection, date: &str) -> Result<Vec<Task>> {
         "SELECT t.id, t.name, t.project, t.start, t.estimate,
                          t.repeat, t.next, ifnull(n.notetext, ''), t.status
                          FROM tasks as t
-                         LEFT OUTER JOIN note as n
+                         LEFT OUTER JOIN (
+                            SELECT *
+                            FROM (
+                                SELECT id, MAX(start) as start, notetext
+                                FROM note
+                                GROUP BY id)
+                            WHERE date(start) <= '{}'
+                            ORDER BY id
+                        ) as n
                          ON t.id = n.id
                          WHERE t.next = '{}' ORDER BY t.start",
-        date
+        date, date
     );
     let task_vector = query_to_vec_task(conn, &query)?;
 
@@ -224,18 +232,18 @@ pub fn filter_by_date_plan(conn: &Connection, date: &str) -> Result<Vec<Task>> {
         t.repeat, t.next, ifnull(n.notetext, ''), t.status
         FROM tasks as t
         LEFT OUTER JOIN (
-            SELECT *
-            FROM (
-            SELECT id, MIN(start) as start, notetext
-            FROM note
-            GROUP BY id)
-            WHERE date(start) >= date('now', '-1 day')
-            ORDER BY id
+			SELECT id, MAX(start), notetext
+			FROM (
+				SELECT id, start, notetext
+				FROM note
+				WHERE date(start) <= '{}'
+				ORDER BY id)
+			GROUP BY id
         ) as n
         on t.id = n.id
-        WHERE next = '{}'
+		WHERE t.next = '{}'
         ORDER BY t.start",
-        date
+        date, date
     );
     let task_vector = query_to_vec_task(conn, &query)?;
     Ok(task_vector)
