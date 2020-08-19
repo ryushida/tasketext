@@ -372,10 +372,10 @@ fn user_input_bulk_edit_notes(conn: &Connection, id_vec: &Vec<i32>) -> Result<()
 }
 
 fn user_input_bulk_edit_estimates(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
-    let notes = user_input("Estimates");
+    let estimates = user_input("Estimates").parse::<i32>().unwrap();
 
     for id in id_vec.iter() {
-        sql::modify_estimates(conn, id, &notes)?;
+        sql::modify_estimates(conn, id, &estimates)?;
     }
 
     Ok(())

@@ -114,7 +114,7 @@ pub fn modify_notes(conn: &Connection, task_id: &i32, start: &str, value: &str) 
     Ok(())
 }
 
-pub fn modify_estimates(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
+pub fn modify_estimates(conn: &Connection, task_id: &i32, value: &i32) -> Result<()> {
     let mut stmt = conn.prepare("UPDATE tasks SET estimate = ? WHERE id = ?")?;
     stmt.execute(params![value, task_id])?;
 
