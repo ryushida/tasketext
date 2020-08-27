@@ -19,6 +19,8 @@ use crate::Note;
 use std::path::Path;
 
 pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
+    let logged = sql::check_log_for_date(conn, &datetime::yyyymmdd_today_plus_n(-1))?;
+
     let selected = &[
         "Add a Task to Today's Plan",
         "Add a Task",

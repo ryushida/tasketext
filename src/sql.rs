@@ -540,3 +540,13 @@ fn query_to_vec_log(conn: &Connection, query: &str, param: &str) -> Result<Vec<L
 
     Ok(vec)
 }
+
+pub fn check_log_for_date(conn: &Connection, date: &str) -> Result<bool> {
+    let count: i32 = conn.query_row("SELECT COUNT(*)
+                                    FROM log
+                                    WHERE date = ?",
+                                    &[&date],
+                                    |row| row.get(0))?;
+
+    return if count > 0 { Ok(true) } else { Ok(false) }
+}
