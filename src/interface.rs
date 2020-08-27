@@ -19,6 +19,15 @@ use crate::Note;
 use std::path::Path;
 
 pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
+    let logged = sql::check_log_for_date(conn, &datetime::yyyymmdd_today_plus_n(-1))?;
+    if !logged {
+        if Confirm::new().with_prompt("Add yesterday's Markdown log to database?").interact().unwrap() {
+            yesterday_log_to_database(conn, &main_dir)?;
+        } else {
+            println!("Run again after reviewing file");
+        }
+    }
+
     let selected = &[
         "Add a Task to Today's Plan",
         "Add a Task",
@@ -553,4 +562,13 @@ fn log_vector_to_markdown_table_string(log_vector: Vec<Log>) -> String {
     }
 
     table.to_string()
+}
+
+fn yesterday_log_to_database(conn: &Connection, dir: &str) -> Result<()> {
+    let date = datetime::yyyymmdd_today_plus_n(-1);
+    let log_filename = date.replace("-", "") + ".md";    
+    let log_path = dir.to_string() + &log_filename;
+    sql::log_to_database(conn, log_path, date).ok();
+
+    Ok(())
 }
