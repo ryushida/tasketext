@@ -9,6 +9,7 @@ use std::str;
 use std::rc::Rc;
 use rusqlite::types::Value as SqlValue;
 
+use crate::datetime;
 use crate::Log;
 use crate::Note;
 
@@ -549,4 +550,25 @@ pub fn check_log_for_date(conn: &Connection, date: &str) -> Result<bool> {
                                     |row| row.get(0))?;
 
     return if count > 0 { Ok(true) } else { Ok(false) }
+}
+
+pub fn repeat_next_updated(conn: &Connection) -> Result<bool> {
+    let today = datetime::yyyymmdd_today_plus_n(0);
+    let not_updated: i32 = conn.query_row("SELECT COUNT(*)
+                                          FROM tasks
+                                          WHERE repeat <> '' and next < ?",
+                                          &[&today],
+                                          |row| row.get(0))?;
+
+    return if not_updated > 0 { Ok(false) } else { Ok(true) }
+}
+
+pub fn update_routine_nexts(conn: &Connection) -> Result<()> {
+    let today = datetime::yyyymmdd_today_plus_n(0);
+    let mut stmt = conn.prepare("UPDATE tasks
+                                           SET next = ?
+                                           WHERE repeat = '+1d'")?;
+    stmt.execute(params![today])?;
+
+    Ok(())
 }

@@ -28,6 +28,12 @@ pub fn main_menu(conn: &Connection, main_dir: String) -> Result<()> {
         }
     }
 
+    let updated = sql::repeat_next_updated(conn)?;
+    if !updated {
+        sql::update_routine_nexts(conn)?;
+        println!("Updated Routine Dates")
+    }
+
     let selected = &[
         "Add a Task to Today's Plan",
         "Add a Task",
