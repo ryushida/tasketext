@@ -404,7 +404,7 @@ fn bulk_delete(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
 }
 
 fn call_generate_daily_plan(conn: &Connection, dir: String) -> Result<()> {
-    let date_vec = datetime::days_range(-1, 5);
+    let date_vec = datetime::days_range(0, 2);
     let date_slice: &[String] = &date_vec;
 
     let selection = Select::with_theme(&ColorfulTheme::default())
@@ -414,17 +414,19 @@ fn call_generate_daily_plan(conn: &Connection, dir: String) -> Result<()> {
         .interact();
 
     let n = match selection {
-        Ok(0) => -1,
-        Ok(1) => 0,
-        Ok(2) => 1,
-        Ok(3) => 2,
-        Ok(4) => 3,
+        Ok(0) => 0,
+        Ok(1) => 1,
         Ok(_) => panic!("Something wrong"),
         Err(_err) => panic!("Something Wrong"),
     };
 
     let target_date = datetime::yyyymmdd_today_plus_n(n);
-    let plan_string = sql::generate_daily_plan(conn, &target_date)?;
+
+    let plan_string = match n {
+        0 => sql::generate_today_plan(conn)?,
+        1 => sql::generate_tomorrow_plan(conn)?,
+        _ => panic!("plan_string something wrong"),
+    };
 
     let file_path = [dir, target_date.replace("-", ""), ".md".to_string()].join("");
     
