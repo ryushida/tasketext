@@ -9,6 +9,7 @@ use std::str;
 use std::rc::Rc;
 use rusqlite::types::Value as SqlValue;
 
+use crate::datetime;
 use crate::Log;
 use crate::Note;
 
@@ -256,6 +257,30 @@ pub fn filter_by_date_plan(conn: &Connection, date: &str) -> Result<Vec<Task>> {
     Ok(task_vector)
 }
 
+pub fn filter_by_date_plan_tom(conn: &Connection, tomorrow: &str, today: &str) -> Result<Vec<Task>> {
+    let query = format!(
+        "SELECT t.id, t.name, t.project, t.start, t.estimate,
+        t.repeat, t.next, ifnull(n.notetext, ''), t.status
+        FROM tasks as t
+        LEFT OUTER JOIN (
+			SELECT id, MAX(start), notetext
+			FROM (
+				SELECT id, start, notetext
+				FROM note
+				WHERE date(start) <= '{}'
+				ORDER BY id)
+			GROUP BY id
+        ) as n
+        on t.id = n.id
+		WHERE (t.repeat = '' AND t.next = '{}')
+		OR (t.repeat <> '' AND t.next = '{}')
+        ORDER BY t.start",
+        tomorrow, tomorrow, today
+    );
+    let task_vector = query_to_vec_task(conn, &query)?;
+    Ok(task_vector)
+}
+
 pub fn filter_by_project(conn: &Connection, date: String) -> Result<Vec<Task>> {
     let query = format!(
         "SELECT id, name, project, start, estimate, repeat, next, '', status
@@ -317,8 +342,15 @@ pub fn filter_by_id(conn: &Connection, id_vec: Vec<i32>) -> Result<Vec<Task>> {
     Ok(task_vector.to_vec())
 }
 
-pub fn generate_daily_plan(conn: &Connection, target_date: &str) -> Result<String> {
-    let vec = filter_by_date_plan(conn, target_date);
+pub fn generate_today_plan(conn: &Connection) -> Result<String> {
+    let vec = filter_by_date_plan(conn, &datetime::yyyymmdd_today_plus_n(0));
+    let plan_string = vector_to_daily_plan(vec)?;
+
+    Ok(plan_string)
+}
+
+pub fn generate_tomorrow_plan(conn: &Connection) -> Result<String> {
+    let vec = filter_by_date_plan_tom(conn, &datetime::yyyymmdd_today_plus_n(1), &datetime::yyyymmdd_today_plus_n(0));
     let plan_string = vector_to_daily_plan(vec)?;
 
     Ok(plan_string)
@@ -549,4 +581,25 @@ pub fn check_log_for_date(conn: &Connection, date: &str) -> Result<bool> {
                                     |row| row.get(0))?;
 
     return if count > 0 { Ok(true) } else { Ok(false) }
+}
+
+pub fn repeat_next_updated(conn: &Connection) -> Result<bool> {
+    let today = datetime::yyyymmdd_today_plus_n(0);
+    let not_updated: i32 = conn.query_row("SELECT COUNT(*)
+                                          FROM tasks
+                                          WHERE repeat <> '' and next < ?",
+                                          &[&today],
+                                          |row| row.get(0))?;
+
+    return if not_updated > 0 { Ok(false) } else { Ok(true) }
+}
+
+pub fn update_routine_nexts(conn: &Connection) -> Result<()> {
+    let today = datetime::yyyymmdd_today_plus_n(0);
+    let mut stmt = conn.prepare("UPDATE tasks
+                                           SET next = ?
+                                           WHERE repeat = '+1d'")?;
+    stmt.execute(params![today])?;
+
+    Ok(())
 }
