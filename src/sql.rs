@@ -122,6 +122,13 @@ pub fn modify_estimates(conn: &Connection, task_id: &i32, value: &i32) -> Result
     Ok(())
 }
 
+pub fn modify_status(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
+    let mut stmt = conn.prepare("UPDATE tasks SET status = ? WHERE id = ?")?;
+    stmt.execute(params![value, task_id])?;
+
+    Ok(())
+}
+
 pub fn get_all_notes(conn: &Connection, id_vec: &[i32]) -> Result<Vec<Note>> {
     rusqlite::vtab::array::load_module(&conn)?;
 
@@ -201,12 +208,13 @@ fn query_to_vec_task(conn: &Connection, query: &str) -> Result<Vec<Task>> {
     Ok(vec)
 }
 
-pub fn filter_status_active(conn: &Connection) -> Result<Vec<Task>> {
-    let query = "SELECT id, name, project, start, estimate, repeat, next,
+pub fn filter_by_status(conn: &Connection, status: &str) -> Result<Vec<Task>> {
+    let query = format!("SELECT id, name, project, start, estimate, repeat, next,
                  '', status
                  FROM tasks
-                 WHERE status = 'ACTIVE'";
-    let task_vector = query_to_vec_task(conn, query)?;
+                 WHERE status = '{}'",
+                 status);
+    let task_vector = query_to_vec_task(conn, &query)?;
 
     Ok(task_vector)
 }
@@ -249,7 +257,7 @@ pub fn filter_by_date_plan(conn: &Connection, date: &str) -> Result<Vec<Task>> {
 			GROUP BY id
         ) as n
         on t.id = n.id
-		WHERE t.next = '{}'
+		WHERE t.next = '{}' AND t.status = 'ACTIVE'
         ORDER BY t.start",
         date, date
     );
