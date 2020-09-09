@@ -207,12 +207,13 @@ fn query_to_vec_task(conn: &Connection, query: &str) -> Result<Vec<Task>> {
     Ok(vec)
 }
 
-pub fn filter_status_active(conn: &Connection) -> Result<Vec<Task>> {
-    let query = "SELECT id, name, project, start, estimate, repeat, next,
+pub fn filter_by_status(conn: &Connection, status: &str) -> Result<Vec<Task>> {
+    let query = format!("SELECT id, name, project, start, estimate, repeat, next,
                  '', status
                  FROM tasks
-                 WHERE status = 'ACTIVE'";
-    let task_vector = query_to_vec_task(conn, query)?;
+                 WHERE status = '{}'",
+                 status);
+    let task_vector = query_to_vec_task(conn, &query)?;
 
     Ok(task_vector)
 }

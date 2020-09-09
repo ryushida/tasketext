@@ -207,6 +207,7 @@ fn view_tasks_menu(conn: &Connection) -> Result<()> {
         "Filter by Project",
         "Filter Routines",
         "Filter by Repeat",
+        "Filter by Status",
         "quit",
     ];
 
@@ -223,7 +224,8 @@ fn view_tasks_menu(conn: &Connection) -> Result<()> {
         2 => filter_by_print(&conn, Ok("project"))?,
         3 => filter_by_print(&conn, Ok("routine"))?,
         4 => filter_by_print(&conn, Ok("repeat"))?,
-        5 => (),
+        5 => filter_by_print(&conn, Ok("status"))?,
+        6 => (),
         _ => println!("Something went wrong"),
     }
 
@@ -232,11 +234,12 @@ fn view_tasks_menu(conn: &Connection) -> Result<()> {
 
 fn filter_by_print(conn: &Connection, by: Result<&str>) -> Result<()> {
     let task_vector = match by {
-        Ok("active") => sql::filter_status_active(conn)?,
+        Ok("active") => sql::filter_by_status(conn, "ACTIVE")?,
         Ok("date") => sql::filter_by_date(conn, &user_input_date("Date"))?,
         Ok("project") => sql::filter_by_project(conn, user_input("Project"))?,
         Ok("routine") => sql::filter_by_routine(conn)?,
         Ok("repeat") => sql::filter_by_repeat(conn, user_input("Repeat"))?,
+        Ok("status") => sql::filter_by_status(conn, &user_input("Status"))?,
         Ok(_) => panic!(),
         Err(_err) => panic!(),
     };
