@@ -300,6 +300,7 @@ fn multiple_task_actions_menu(conn: &Connection, id_vector: &Vec<i32>) -> Result
         "Modify Project",
         "Modify/Add Notes",
         "Modify Estimates",
+        "Modify Status",
         "Delete Task",
         "quit",
     ];
@@ -315,7 +316,8 @@ fn multiple_task_actions_menu(conn: &Connection, id_vector: &Vec<i32>) -> Result
         Ok(2) => user_input_bulk_edit_project(conn, &id_vector)?,
         Ok(3) => user_input_bulk_edit_notes(conn, &id_vector)?,
         Ok(4) => user_input_bulk_edit_estimates(conn, &id_vector)?,
-        Ok(5) => bulk_delete(conn, &id_vector)?,
+        Ok(5) => user_input_bulk_edit_status(conn, &id_vector)?,
+        Ok(6) => bulk_delete(conn, &id_vector)?,
         Ok(_) => println!("Something went wrong"),
         Err(_err) => println!("Error"),
     }
@@ -391,6 +393,32 @@ fn user_input_bulk_edit_estimates(conn: &Connection, id_vec: &Vec<i32>) -> Resul
 
     for id in id_vec.iter() {
         sql::modify_estimates(conn, id, &estimates)?;
+    }
+
+    Ok(())
+}
+
+fn user_input_bulk_edit_status(conn: &Connection, id_vec: &Vec<i32>) -> Result<()> {
+    let selected = &[
+        "ACTIVE",
+        "INACTIVE",
+    ];
+
+    let selection = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Status")
+        .items(&selected[..])
+        .default(0)
+        .interact();
+
+    let status = match selection {
+        Ok(0) => "ACTIVE",
+        Ok(1) => "INACTIVE",
+        Ok(_) => "ACTIVE",
+        Err(_) => "ACTIVE",
+    };
+
+    for id in id_vec.iter() {
+        sql::modify_status(conn, id, &status)?;
     }
 
     Ok(())
