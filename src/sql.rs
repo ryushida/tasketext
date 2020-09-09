@@ -121,6 +121,13 @@ pub fn modify_estimates(conn: &Connection, task_id: &i32, value: &i32) -> Result
     Ok(())
 }
 
+pub fn modify_status(conn: &Connection, task_id: &i32, value: &str) -> Result<()> {
+    let mut stmt = conn.prepare("UPDATE tasks SET status = ? WHERE id = ?")?;
+    stmt.execute(params![value, task_id])?;
+
+    Ok(())
+}
+
 pub fn get_all_notes(conn: &Connection, id_vec: &[i32]) -> Result<Vec<Note>> {
     rusqlite::vtab::array::load_module(&conn)?;
 
