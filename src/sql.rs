@@ -248,7 +248,7 @@ pub fn filter_by_date_plan(conn: &Connection, date: &str) -> Result<Vec<Task>> {
 			GROUP BY id
         ) as n
         on t.id = n.id
-		WHERE t.next = '{}'
+		WHERE t.next = '{}' AND t.status = 'ACTIVE'
         ORDER BY t.start",
         date, date
     );
