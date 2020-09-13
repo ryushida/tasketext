@@ -290,12 +290,12 @@ pub fn filter_by_date_plan_tom(conn: &Connection, tomorrow: &str, today: &str) -
     Ok(task_vector)
 }
 
-pub fn filter_by_project(conn: &Connection, date: String) -> Result<Vec<Task>> {
+pub fn filter_by_project(conn: &Connection, project: String) -> Result<Vec<Task>> {
     let query = format!(
         "SELECT id, name, project, start, estimate, repeat, next, '', status
         FROM tasks
         WHERE project = '{}' ORDER BY start",
-        date
+        project
     );
 
     let task_vector = query_to_vec_task(conn, &query)?;
@@ -314,13 +314,13 @@ pub fn filter_by_routine(conn: &Connection) -> Result<Vec<Task>> {
     Ok(task_vector)
 }
 
-pub fn filter_by_repeat(conn: &Connection, date: String) -> Result<Vec<Task>> {
+pub fn filter_by_repeat(conn: &Connection, repeat: String) -> Result<Vec<Task>> {
     let query = format!(
         "SELECT id, name, project, start, estimate, repeat, next, '', status
          FROM tasks
          WHERE repeat = '{}'
          ORDER BY start",
-        date
+        repeat
     );
 
     let task_vector = query_to_vec_task(conn, &query)?;
