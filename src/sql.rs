@@ -280,8 +280,9 @@ pub fn filter_by_date_plan_tom(conn: &Connection, tomorrow: &str, today: &str) -
 			GROUP BY id
         ) as n
         on t.id = n.id
-		WHERE (t.repeat = '' AND t.next = '{}')
-		OR (t.repeat <> '' AND t.next = '{}')
+        WHERE t.status = 'ACTIVE'
+        AND ((t.repeat = '' AND t.next = '{}')
+		OR (t.repeat <> '' AND t.next = '{}'))
         ORDER BY t.start",
         tomorrow, tomorrow, today
     );
